@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased font-sans bg-paper-50 text-ink_text;
+  }
+
+  ::selection {
+    @apply bg-stamp-tint text-stamp-dim;
+  }
+
+  :focus-visible {
+    outline: 2px solid #1b6e86;
+    outline-offset: 2px;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+@layer utilities {
+  /* Grade fina, nos moldes de uma planilha/trilha de auditoria — usada só
+     como textura de fundo muito sutil atrás da marca (nunca sob conteúdo). */
+  .bg-audit-grid {
+    background-image:
+      linear-gradient(to right, rgba(18, 58, 94, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(18, 58, 94, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
