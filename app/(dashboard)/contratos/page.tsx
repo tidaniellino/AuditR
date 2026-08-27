@@ -1,18 +1,33 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
+import { Pagination } from "@/components/ui/Pagination";
 import { STATUS_DISPLAY, resolveDisplayStatus, type ContractStatus } from "@/lib/contracts/status";
 import { RelatorioModal } from "./RelatorioModal";
 
-export default async function ContratosPage() {
-  const supabase = await createClient();
+const PAGE_SIZE = 10;
 
-  const { data: contracts } = await supabase
+export default async function ContratosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const supabase = await createClient();
+  const params = await searchParams;
+  const currentPage = Math.max(1, Number(params.page) || 1);
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data: contracts, count } = await supabase
     .from("contracts")
     .select(
-      "id, title, status, created_at, clients(nome_razao_social), contract_templates(name), signature_codes(expires_at, created_at), profiles!contracts_created_by_fkey(full_name)"
+      "id, title, status, created_at, clients(nome_razao_social), contract_templates(name), signature_codes(expires_at, created_at), profiles!contracts_created_by_fkey(full_name)",
+      { count: "exact" }
     )
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
     <div>
@@ -37,7 +52,7 @@ export default async function ContratosPage() {
         </div>
       </div>
 
-      {!contracts?.length ? (
+      {!count ? (
         <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
           <p className="text-sm font-medium text-ink_text">Nenhum contrato gerado ainda</p>
           <p className="mt-1 text-sm text-muted">
@@ -58,7 +73,7 @@ export default async function ContratosPage() {
               </tr>
             </thead>
             <tbody>
-              {contracts.map((c) => {
+              {(contracts ?? []).map((c) => {
                 const codes = (c.signature_codes ?? []) as { expires_at: string; created_at: string }[];
                 const latestCode = codes.reduce<{ expires_at: string; created_at: string } | null>(
                   (latest, code) => (!latest || code.created_at > latest.created_at ? code : latest),
@@ -93,6 +108,8 @@ export default async function ContratosPage() {
           </table>
         </div>
       )}
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/contratos" />
     </div>
   );
 }

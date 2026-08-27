@@ -150,6 +150,24 @@ export function HelpIcon({ className }: IconProps) {
   );
 }
 
+export function CardIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
+      <rect x="2.75" y="5" width="18.5" height="14" rx="2" />
+      <path d="M2.75 9.5h18.5" />
+      <path d="M6 14h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <path d="M4.5 12.5l5 5 10-10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ContractsIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} stroke="currentColor" aria-hidden="true">

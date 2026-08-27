@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClientsIcon, ClausesIcon, TemplatesIcon, ContractsIcon, BuildingIcon, HelpIcon } from "./icons";
+import { ClientsIcon, ClausesIcon, TemplatesIcon, ContractsIcon, BuildingIcon, HelpIcon, CardIcon } from "./icons";
 import { canManageOrg, type UserRole } from "@/lib/auth/permissions";
 
 const NAV_ITEMS = [
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/clausulas", label: "Cláusulas", Icon: ClausesIcon },
   { href: "/modelos", label: "Modelos", Icon: TemplatesIcon },
   { href: "/contratos", label: "Contratos", Icon: ContractsIcon },
+  { href: "/assinatura", label: "Assinatura", Icon: CardIcon },
   { href: "/ajuda", label: "Ajuda", Icon: HelpIcon },
 ];
 

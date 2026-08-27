@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormState } from "react-dom";
 import { login, type LoginState } from "./actions";
 import { Field, inputClass } from "@/components/ui/Field";
@@ -41,6 +42,10 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       <SubmitButton pendingLabel="Entrando..." className="mt-1 w-full">
         Entrar
       </SubmitButton>
+
+      <Link href="/esqueci-senha" className="text-center text-sm text-muted underline underline-offset-2 hover:text-ink_text">
+        Esqueci minha senha
+      </Link>
     </form>
   );
 }

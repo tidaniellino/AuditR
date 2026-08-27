@@ -12,6 +12,7 @@ import { isWhatsAppConfigured, sendSigningWhatsAppMessage } from "@/lib/whatsapp
 import { getBaseUrl } from "@/lib/url";
 import { formatBRL } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { getContractUsage } from "@/lib/billing/limits";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 type Profile = { org_id: string; full_name: string };
@@ -76,6 +77,15 @@ async function generateContract({
   valor: number | null;
   clauseId?: string | null;
 }): Promise<{ contractId: string } | { error: string }> {
+  const usage = await getContractUsage(supabase, profile.org_id);
+  if (usage.blocked) {
+    return {
+      error: usage.isPaidActive
+        ? `Limite de ${usage.limit} contratos do plano ${usage.planLabel} atingido neste ciclo. Acesse "Assinatura" no menu para fazer upgrade.`
+        : `Limite de ${usage.limit} contratos do plano gratuito atingido. Acesse "Assinatura" no menu para continuar gerando contratos.`,
+    };
+  }
+
   const [{ data: client }, { data: template }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", clientId).single(),
     supabase.from("contract_templates").select("*").eq("id", templateId).single(),

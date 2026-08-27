@@ -55,43 +55,42 @@ O código tem um prazo de 24 horas. Depois do prazo é necessário solicitar o r
   if (error) throw new Error(error.message);
 }
 
-export async function sendInviteEmail({
+export async function sendPasswordResetEmail({
   to,
-  orgName,
-  roleLabel,
-  inviteUrl,
+  resetUrl,
 }: {
   to: string;
-  orgName: string;
-  roleLabel: string;
-  inviteUrl: string;
+  resetUrl: string;
 }) {
   const text = `Olá!
 
-Você foi convidado(a) para acessar o ${orgName} no AuditR Contratos, com o perfil de ${roleLabel}.
+Recebemos um pedido para redefinir a senha da sua conta no AuditR Contratos.
 
-Clique no link abaixo para criar sua senha e acessar o sistema:
-${inviteUrl}
+Clique no link abaixo para escolher uma nova senha:
+${resetUrl}
 
-O convite tem um prazo de 7 dias.`;
+Se você não pediu essa redefinição, ignore este e-mail — sua senha continua a mesma. O link expira em 1 hora.`;
 
   const html = `
     <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 480px; margin: 0 auto; color: #1C1D22;">
       <p>Olá!</p>
-      <p>Você foi convidado(a) para acessar o <strong>${escapeHtml(orgName)}</strong> no AuditR Contratos, com o perfil de <strong>${escapeHtml(roleLabel)}</strong>.</p>
+      <p>Recebemos um pedido para redefinir a senha da sua conta no AuditR Contratos.</p>
       <p style="text-align:center; margin: 24px 0;">
-        <a href="${inviteUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
-          Criar acesso
+        <a href="${resetUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
+          Redefinir senha
         </a>
       </p>
-      <p style="color:#6B6A63; font-size: 13px;">O convite tem um prazo de 7 dias.</p>
+      <p style="color:#6B6A63; font-size: 13px;">
+        Se você não pediu essa redefinição, ignore este e-mail — sua senha continua a mesma. O link expira em 1
+        hora.
+      </p>
     </div>
   `;
 
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: `Convite para acessar o ${orgName}`,
+    subject: "Redefinição de senha — AuditR Contratos",
     text,
     html,
   });

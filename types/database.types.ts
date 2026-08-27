@@ -713,31 +713,49 @@ export type Database = {
         Row: {
           cnpj: string | null
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
           email: string | null
           endereco: Json | null
           id: string
           name: string
           owner_claimed_at: string | null
+          plan: string
+          plan_status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           telefone: string | null
         }
         Insert: {
           cnpj?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           email?: string | null
           endereco?: Json | null
           id?: string
           name: string
           owner_claimed_at?: string | null
+          plan?: string
+          plan_status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           telefone?: string | null
         }
         Update: {
           cnpj?: string | null
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
           email?: string | null
           endereco?: Json | null
           id?: string
           name?: string
           owner_claimed_at?: string | null
+          plan?: string
+          plan_status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           telefone?: string | null
         }
         Relationships: []
@@ -834,8 +852,12 @@ export type Database = {
           cpf: string | null
           created_at: string
           email: string
+          failed_login_attempts: number
           full_name: string
           id: string
+          login_blocked: boolean
+          login_locked_until: string | null
+          must_change_password: boolean
           oab_crc: string | null
           org_id: string
           role: Database["public"]["Enums"]["user_role"]
@@ -846,8 +868,12 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email: string
+          failed_login_attempts?: number
           full_name: string
           id: string
+          login_blocked?: boolean
+          login_locked_until?: string | null
+          must_change_password?: boolean
           oab_crc?: string | null
           org_id: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -858,8 +884,12 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email?: string
+          failed_login_attempts?: number
           full_name?: string
           id?: string
+          login_blocked?: boolean
+          login_locked_until?: string | null
+          must_change_password?: boolean
           oab_crc?: string | null
           org_id?: string
           role?: Database["public"]["Enums"]["user_role"]
@@ -1216,6 +1246,10 @@ export type Database = {
     }
     Functions: {
       can_edit_clauses: { Args: never; Returns: boolean }
+      check_login_lockout: {
+        Args: { p_email: string }
+        Returns: { blocked: boolean; locked_until: string | null }[]
+      }
       create_organization: {
         Args: { p_cnpj?: string; p_name: string }
         Returns: string
@@ -1224,6 +1258,14 @@ export type Database = {
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      register_login_result: {
+        Args: { p_email: string; p_success: boolean }
+        Returns: undefined
+      }
+      unlock_member_login: {
+        Args: { p_member_id: string }
+        Returns: undefined
       }
       get_invite_info: {
         Args: { p_token: string }

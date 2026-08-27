@@ -3,9 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageOrg, ROLE_LABELS, type UserRole } from "@/lib/auth/permissions";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
 import { OrgSettingsForm } from "./OrgSettingsForm";
-import { InviteMemberModal } from "./InviteMemberModal";
+import { CreateMemberModal } from "./CreateMemberModal";
 import { MemberRoleSelect } from "./MemberRoleSelect";
 import { MemberActiveToggle } from "./MemberActiveToggle";
+import { UnlockMemberButton } from "./UnlockMemberButton";
 
 export default async function EmpresaPage() {
   const supabase = await createClient();
@@ -22,7 +23,7 @@ export default async function EmpresaPage() {
     supabase.from("organizations").select("*").eq("id", profile!.org_id).single(),
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, active")
+      .select("id, full_name, email, role, active, login_blocked")
       .eq("org_id", profile!.org_id)
       .order("created_at", { ascending: true }),
   ]);
@@ -63,7 +64,7 @@ export default async function EmpresaPage() {
               gerados (nome, CPF e assinatura eletrônica no PDF).
             </p>
           </div>
-          <InviteMemberModal />
+          <CreateMemberModal />
         </div>
 
         <div className="overflow-hidden rounded-card border border-edge bg-card shadow-sm shadow-ink-900/5">
@@ -74,6 +75,7 @@ export default async function EmpresaPage() {
                 <th className="px-4 py-3 font-medium">E-mail</th>
                 <th className="px-4 py-3 font-medium">Perfil</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Acesso</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +93,13 @@ export default async function EmpresaPage() {
                     </td>
                     <td className="px-4 py-3">
                       <MemberActiveToggle memberId={m.id} active={m.active} disabled={isSelf} />
+                    </td>
+                    <td className="px-4 py-3">
+                      {m.login_blocked ? (
+                        <UnlockMemberButton memberId={m.id} memberName={m.full_name} />
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
                     </td>
                   </tr>
                 );

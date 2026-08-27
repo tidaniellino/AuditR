@@ -1,14 +1,12 @@
 "use server";
 
-import { randomBytes } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { canManageOrg, ROLE_LABELS, type UserRole } from "@/lib/auth/permissions";
-import { sendInviteEmail } from "@/lib/email/resend";
-import { getBaseUrl } from "@/lib/url";
-
-const INVITE_TTL_DAYS = 7;
+import { isValidCPF, onlyDigits } from "@/lib/validation/cpf-cnpj";
+import { validatePassword } from "@/lib/validation/password";
 
 async function requireOrgManager() {
   const supabase = await createClient();
@@ -72,53 +70,66 @@ export async function updateOrganization(
   return {};
 }
 
-export interface InviteFormState {
+export interface MemberFormState {
   error?: string;
   success?: string;
 }
 
-export async function createInvite(
-  _prevState: InviteFormState | undefined,
+export async function createMember(
+  _prevState: MemberFormState | undefined,
   formData: FormData
-): Promise<InviteFormState> {
-  const { supabase, user, profile } = await requireOrgManager();
+): Promise<MemberFormState> {
+  const { profile } = await requireOrgManager();
 
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const cpf = onlyDigits(String(formData.get("cpf") ?? ""));
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
   const role = String(formData.get("role") ?? "") as UserRole;
 
+  if (!fullName) return { error: "Nome completo é obrigatório." };
+  if (!isValidCPF(cpf)) return { error: "CPF inválido." };
   if (!email || !email.includes("@")) return { error: "Informe um e-mail válido." };
   if (!Object.keys(ROLE_LABELS).includes(role)) return { error: "Selecione um perfil válido." };
+  if (password !== confirmPassword) return { error: "As senhas não coincidem." };
 
-  const { data: org } = await supabase.from("organizations").select("name").eq("id", profile.org_id).single();
+  const problems = validatePassword(password, { email, cpf });
+  if (problems.length) return { error: problems[0] };
 
-  const token = randomBytes(24).toString("hex");
-  const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Cadastro direto de usuários não está configurado neste ambiente (falta a Service Role Key do Supabase)." };
+  }
 
-  const { error } = await supabase.from("org_invites").insert({
-    org_id: profile.org_id,
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
-    role,
-    token,
-    created_by: user.id,
-    expires_at: expiresAt.toISOString(),
+    password,
+    email_confirm: true,
+    user_metadata: { org_id: profile.org_id, full_name: fullName },
   });
 
-  if (error) return { error: "Não foi possível gerar o convite." };
+  if (createError || !created.user) {
+    if (createError?.message?.toLowerCase().includes("already")) {
+      return { error: "Já existe um usuário cadastrado com esse e-mail." };
+    }
+    return { error: "Não foi possível criar o usuário." };
+  }
 
-  const baseUrl = await getBaseUrl();
-  try {
-    await sendInviteEmail({
-      to: email,
-      orgName: org?.name ?? "AuditR Contratos",
-      roleLabel: ROLE_LABELS[role],
-      inviteUrl: `${baseUrl}/convite/${token}`,
-    });
-  } catch {
-    return { error: "Convite gerado, mas não foi possível enviar o e-mail. Tente reenviar em instantes." };
+  const { error: updateError } = await admin
+    .from("profiles")
+    .update({ role, cpf, must_change_password: true })
+    .eq("id", created.user.id);
+
+  if (updateError) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    return { error: "Não foi possível concluir o cadastro do usuário." };
   }
 
   revalidatePath("/empresa");
-  return { success: `Convite enviado para ${email}.` };
+  return { success: `Usuário ${fullName} cadastrado com sucesso.` };
 }
 
 export async function toggleMemberActive(memberId: string, nextValue: boolean): Promise<void> {
@@ -130,5 +141,12 @@ export async function toggleMemberActive(memberId: string, nextValue: boolean): 
 export async function updateMemberRole(memberId: string, role: UserRole): Promise<void> {
   const { supabase } = await requireOrgManager();
   await supabase.from("profiles").update({ role }).eq("id", memberId);
+  revalidatePath("/empresa");
+}
+
+export async function unlockMemberLogin(memberId: string): Promise<void> {
+  const { supabase } = await requireOrgManager();
+  const { error } = await supabase.rpc("unlock_member_login", { p_member_id: memberId });
+  if (error) throw new Error(error.message);
   revalidatePath("/empresa");
 }
