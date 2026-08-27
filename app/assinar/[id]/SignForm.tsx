@@ -3,12 +3,13 @@
 import { useFormState } from "react-dom";
 import { verifySigningCode, type VerifyState } from "./actions";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: VerifyState = {};
 
 export function SignForm({ contractId, signerName }: { contractId: string; signerName: string | null }) {
   const [state, formAction] = useFormState(verifySigningCode, initialState);
+  useActionToast(state?.error ? { error: state.error } : undefined);
 
   if (state?.success) {
     return (
@@ -34,11 +35,6 @@ export function SignForm({ contractId, signerName }: { contractId: string; signe
   return (
     <form action={formAction} className="flex flex-col items-center gap-4">
       <input type="hidden" name="contract_id" value={contractId} />
-      {state?.error && (
-        <div className="w-full">
-          <Alert tone="error">{state.error}</Alert>
-        </div>
-      )}
       <p className="text-center text-sm text-muted">
         {signerName ? `Olá, ${signerName}. ` : ""}Digite o código de 6 dígitos enviado para o seu e-mail.
       </p>

@@ -3,8 +3,44 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #f7f8fa;
+    --foreground: #1c1d22;
+    --card: #ffffff;
+    --mist: #f6f8f9;
+    --edge: #e4e8ec;
+    --muted-foreground: #6b6a63;
+    --brand-tint: #e8eef6;
+    --stamp: #a8391f;
+    --stamp-dim: #832c16;
+    --stamp-light: #c1573c;
+    --stamp-tint: #f5e5df;
+    --seal: #3f5d42;
+    --seal-tint: #e7ede4;
+    --info: #2354c7;
+    --info-tint: #e6ecfb;
+  }
+
+  :root.dark {
+    --background: #0e1420;
+    --foreground: #e8e9ec;
+    --card: #161d2c;
+    --mist: #1a2233;
+    --edge: #2a3448;
+    --muted-foreground: #9ca3b4;
+    --brand-tint: #16233a;
+    --stamp: #e0674a;
+    --stamp-dim: #f0917a;
+    --stamp-light: #e8896f;
+    --stamp-tint: #35201c;
+    --seal: #7fae84;
+    --seal-tint: #1c2a1f;
+    --info: #6f97e8;
+    --info-tint: #1c2740;
+  }
+
   body {
-    @apply antialiased font-sans bg-paper-50 text-ink_text;
+    @apply antialiased font-sans bg-background text-foreground;
   }
 
   ::selection {
@@ -12,7 +48,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #1b6e86;
+    outline: 2px solid #1d4e89;
     outline-offset: 2px;
   }
 

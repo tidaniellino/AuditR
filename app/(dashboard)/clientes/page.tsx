@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
-import { ImportPanel } from "@/components/dashboard/ImportPanel";
-import { importClientsFromExcel } from "./actions";
+import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
+import { EditClientModal } from "./EditClientModal";
+import { DeleteClientButton } from "./DeleteClientButton";
+import { ClientActiveToggle } from "./ClientActiveToggle";
 
 export default async function ClientesPage() {
   const supabase = await createClient();
 
   const { data: clients } = await supabase
     .from("clients")
-    .select("id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, email, telefone, created_at")
+    .select(
+      "id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, email, telefone, endereco, active, created_at"
+    )
     .order("created_at", { ascending: false });
 
   return (
     <div>
+      <SearchParamsToast />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">Cadastro</p>
@@ -23,29 +28,20 @@ export default async function ClientesPage() {
         <div className="flex gap-3">
           <Link
             href="/clientes/novo"
-            className="shrink-0 rounded-card bg-brand-gradient px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-via/35"
+            className="shrink-0 rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
           >
             + Novo cliente
           </Link>
         </div>
       </div>
 
-      <div className="mb-6">
-        <ImportPanel
-          title="Importar clientes de uma planilha"
-          description="Baixe o modelo, preencha uma linha por cliente e envie o arquivo de volta."
-          templateHref="/clientes/modelo"
-          action={importClientsFromExcel}
-        />
-      </div>
-
       {!clients?.length ? (
-        <div className="rounded-card border border-dashed border-edge bg-white px-6 py-10 text-center">
+        <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
           <p className="text-sm font-medium text-ink_text">Nenhum cliente cadastrado ainda</p>
           <p className="mt-1 text-sm text-muted">Comece cadastrando o primeiro cliente do escritório.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-edge bg-white shadow-sm shadow-ink-900/5">
+        <div className="overflow-hidden rounded-card border border-edge bg-card shadow-sm shadow-ink-900/5">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-edge bg-mist text-xs uppercase tracking-wide text-muted">
@@ -53,6 +49,8 @@ export default async function ClientesPage() {
                 <th className="px-4 py-3 font-medium">CPF/CNPJ</th>
                 <th className="px-4 py-3 font-medium">Contato</th>
                 <th className="px-4 py-3 font-medium">Tipo</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -75,6 +73,26 @@ export default async function ClientesPage() {
                     <span className="rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
                       {c.tipo_pessoa}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <ClientActiveToggle clientId={c.id} active={c.active} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <EditClientModal
+                        client={{
+                          id: c.id,
+                          tipo_pessoa: c.tipo_pessoa,
+                          cpf_cnpj: c.cpf_cnpj,
+                          nome_razao_social: c.nome_razao_social,
+                          nome_fantasia: c.nome_fantasia,
+                          email: c.email,
+                          telefone: c.telefone,
+                          endereco: c.endereco as Record<string, string | null> | null,
+                        }}
+                      />
+                      <DeleteClientButton clientId={c.id} clientName={c.nome_razao_social} />
+                    </div>
                   </td>
                 </tr>
               ))}

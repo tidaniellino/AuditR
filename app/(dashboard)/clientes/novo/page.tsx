@@ -1,4 +1,6 @@
 import { ClientForm } from "./ClientForm";
+import { ImportPanel } from "@/components/dashboard/ImportPanel";
+import { importClientsFromExcel } from "../actions";
 
 export default function NovoClientePage() {
   return (
@@ -10,6 +12,16 @@ export default function NovoClientePage() {
         automaticamente.
       </p>
       <ClientForm />
+
+      <div className="mt-10 max-w-xl border-t border-edge pt-6">
+        <p className="mb-3 text-sm text-muted">Ou importe vários clientes de uma vez a partir de uma planilha:</p>
+        <ImportPanel
+          title="Importar clientes de uma planilha"
+          description="Baixe o modelo, preencha uma linha por cliente e envie o arquivo de volta."
+          templateHref="/clientes/modelo"
+          action={importClientsFromExcel}
+        />
+      </div>
     </div>
   );
 }

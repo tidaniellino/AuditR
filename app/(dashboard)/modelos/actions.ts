@@ -35,7 +35,7 @@ export async function createTemplate(
   formData: FormData
 ): Promise<TemplateFormState> {
   const { supabase, user, profile, allowed } = await requireEditor();
-  if (!allowed) return { error: "Apenas Sócio ou Compliance Legal podem criar modelos." };
+  if (!allowed) return { error: "Apenas Sócio pode criar modelos." };
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -92,7 +92,7 @@ export async function updateTemplate(
   formData: FormData
 ): Promise<TemplateFormState> {
   const { supabase, profile, allowed } = await requireEditor();
-  if (!allowed) return { error: "Apenas Sócio ou Compliance Legal podem editar modelos." };
+  if (!allowed) return { error: "Apenas Sócio pode editar modelos." };
 
   const templateId = String(formData.get("template_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -147,7 +147,7 @@ export async function updateTemplate(
   }
 
   revalidatePath(`/modelos/${templateId}/editar`);
-  redirect("/modelos");
+  redirect(`/modelos?sucesso=${encodeURIComponent(`Modelo "${name}" atualizado.`)}`);
 }
 
 export async function toggleTemplateActive(formData: FormData) {
@@ -167,7 +167,7 @@ export async function deleteTemplate(formData: FormData) {
   const templateId = String(formData.get("template_id") ?? "");
 
   if (!allowed || !templateId) {
-    redirect(`/modelos?erro=${encodeURIComponent("Apenas Sócio ou Compliance Legal podem excluir modelos.")}`);
+    redirect(`/modelos?erro=${encodeURIComponent("Apenas Sócio pode excluir modelos.")}`);
   }
 
   const { data: template } = await supabase

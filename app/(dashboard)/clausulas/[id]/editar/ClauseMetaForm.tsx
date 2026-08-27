@@ -4,7 +4,7 @@ import { useFormState } from "react-dom";
 import { updateClauseMeta, type ClauseFormState } from "../../actions";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: ClauseFormState = {};
 
@@ -24,11 +24,11 @@ export function ClauseMetaForm({
   categories: { id: string; name: string }[];
 }) {
   const [state, formAction] = useFormState(updateClauseMeta, initialState);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="clause_id" value={clauseId} />
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
 
       <Field label="Título da cláusula" htmlFor="title">
         <input id="title" name="title" required defaultValue={title} className={inputClass} />

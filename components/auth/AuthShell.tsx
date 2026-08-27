@@ -1,7 +1,7 @@
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
-      <div className="bg-audit-grid relative flex h-64 shrink-0 items-center justify-center overflow-hidden bg-white p-8 lg:h-auto lg:w-1/2">
+      <div className="bg-audit-grid relative flex h-64 shrink-0 items-center justify-center overflow-hidden bg-card p-8 lg:h-auto lg:w-1/2">
         {/* Marca d'água do ícone em escala grande, recortada pela borda do
             painel — dá profundidade sem competir com a marca principal. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -30,7 +30,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="flex flex-1 items-center justify-center bg-mist px-6 py-12 lg:px-16">
-        <div className="animate-rise w-full max-w-sm rounded-2xl border border-edge bg-white px-8 py-10 shadow-xl shadow-ink-900/5">
+        <div className="animate-rise w-full max-w-sm rounded-2xl border border-edge bg-card px-8 py-10 shadow-xl shadow-ink-900/5">
           {children}
         </div>
       </div>

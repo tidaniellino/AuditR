@@ -4,7 +4,7 @@ import { useFormState } from "react-dom";
 import { updateTemplate, type TemplateFormState } from "../../actions";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 import { formatFileSize } from "@/lib/storage/templates";
 
 const initialState: TemplateFormState = {};
@@ -27,11 +27,11 @@ export function EditTemplateForm({
   currentFileUrl: string | null;
 }) {
   const [state, formAction] = useFormState(updateTemplate, initialState);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
       <input type="hidden" name="template_id" value={templateId} />
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
 
       <Field label="Nome do modelo" htmlFor="name">
         <input id="name" name="name" required defaultValue={name} className={inputClass} />

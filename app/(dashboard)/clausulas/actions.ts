@@ -36,7 +36,7 @@ export async function createClause(
   formData: FormData
 ): Promise<ClauseFormState> {
   const { supabase, user, profile, allowed } = await requireEditor();
-  if (!allowed) return { error: "Apenas Sócio ou Compliance Legal podem criar cláusulas." };
+  if (!allowed) return { error: "Apenas Sócio pode criar cláusulas." };
 
   const title = String(formData.get("title") ?? "").trim();
   const clauseType = String(formData.get("clause_type") ?? "").trim();
@@ -97,7 +97,7 @@ export async function updateClauseMeta(
   formData: FormData
 ): Promise<ClauseFormState> {
   const { supabase, profile, allowed } = await requireEditor();
-  if (!allowed) return { error: "Apenas Sócio ou Compliance Legal podem editar cláusulas." };
+  if (!allowed) return { error: "Apenas Sócio pode editar cláusulas." };
 
   const clauseId = String(formData.get("clause_id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
@@ -146,7 +146,7 @@ export async function addClauseVersion(
   formData: FormData
 ): Promise<ClauseFormState> {
   const { supabase, user, profile, allowed } = await requireEditor();
-  if (!allowed) return { error: "Apenas Sócio ou Compliance Legal podem criar novas versões." };
+  if (!allowed) return { error: "Apenas Sócio pode criar novas versões." };
 
   const clauseId = String(formData.get("clause_id") ?? "");
   const content = String(formData.get("content") ?? "").trim();

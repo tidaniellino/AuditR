@@ -2,17 +2,29 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useFormState } from "react-dom";
-import { createClientRecord, lookupCnpj, lookupCep } from "../actions";
+import { createClientRecord, updateClientRecord, lookupCnpj, lookupCep } from "../actions";
 import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
 import type { CnpjLookupResult } from "@/lib/receita-federal/cnpj";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
-export function ClientForm() {
-  const [state, formAction] = useFormState(createClientRecord, undefined);
-  const [tipoPessoa, setTipoPessoa] = useState<"PF" | "PJ">("PJ");
-  const [cpfCnpj, setCpfCnpj] = useState("");
+export interface ClientRecord {
+  id: string;
+  tipo_pessoa: "PF" | "PJ";
+  cpf_cnpj: string;
+  nome_razao_social: string;
+  nome_fantasia: string | null;
+  email: string | null;
+  telefone: string | null;
+  endereco: Record<string, string | null> | null;
+}
+
+export function ClientForm({ client }: { client?: ClientRecord }) {
+  const [state, formAction] = useFormState(client ? updateClientRecord : createClientRecord, undefined);
+  useActionToast(state);
+  const [tipoPessoa, setTipoPessoa] = useState<"PF" | "PJ">(client?.tipo_pessoa ?? "PJ");
+  const [cpfCnpj, setCpfCnpj] = useState(client ? onlyDigits(client.cpf_cnpj) : "");
   const [dadosRf, setDadosRf] = useState<CnpjLookupResult | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -90,7 +102,7 @@ export function ClientForm() {
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-xl flex-col gap-5">
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
+      {client && <input type="hidden" name="client_id" value={client.id} />}
 
       <div className="flex gap-5">
         <label className="flex items-center gap-2 text-sm text-ink_text">
@@ -158,21 +170,27 @@ export function ClientForm() {
       </Field>
 
       <Field label={tipoPessoa === "PF" ? "Nome completo" : "Razão social"} htmlFor="nome_razao_social">
-        <input id="nome_razao_social" name="nome_razao_social" required className={inputClass} />
+        <input
+          id="nome_razao_social"
+          name="nome_razao_social"
+          required
+          defaultValue={client?.nome_razao_social}
+          className={inputClass}
+        />
       </Field>
 
       {tipoPessoa === "PJ" && (
         <Field label="Nome fantasia" htmlFor="nome_fantasia">
-          <input id="nome_fantasia" name="nome_fantasia" className={inputClass} />
+          <input id="nome_fantasia" name="nome_fantasia" defaultValue={client?.nome_fantasia ?? ""} className={inputClass} />
         </Field>
       )}
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="E-mail" htmlFor="email">
-          <input id="email" name="email" type="email" className={inputClass} />
+          <input id="email" name="email" type="email" defaultValue={client?.email ?? ""} className={inputClass} />
         </Field>
         <Field label="Telefone" htmlFor="telefone">
-          <input id="telefone" name="telefone" className={inputClass} />
+          <input id="telefone" name="telefone" defaultValue={client?.telefone ?? ""} className={inputClass} />
         </Field>
       </div>
 
@@ -181,22 +199,44 @@ export function ClientForm() {
           Endereço
         </legend>
         <div className="grid grid-cols-3 gap-4">
-          <input name="logradouro" placeholder="Logradouro" className={`col-span-2 ${inputClass}`} />
-          <input name="numero" placeholder="Número" className={inputClass} />
+          <input
+            name="logradouro"
+            placeholder="Logradouro"
+            defaultValue={client?.endereco?.logradouro ?? ""}
+            className={`col-span-2 ${inputClass}`}
+          />
+          <input name="numero" placeholder="Número" defaultValue={client?.endereco?.numero ?? ""} className={inputClass} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <input name="complemento" placeholder="Complemento" className={inputClass} />
-          <input name="bairro" placeholder="Bairro" className={inputClass} />
+          <input
+            name="complemento"
+            placeholder="Complemento"
+            defaultValue={client?.endereco?.complemento ?? ""}
+            className={inputClass}
+          />
+          <input name="bairro" placeholder="Bairro" defaultValue={client?.endereco?.bairro ?? ""} className={inputClass} />
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <input name="municipio" placeholder="Município" className={`col-span-2 ${inputClass}`} />
-          <input name="uf" placeholder="UF" maxLength={2} className={`uppercase ${inputClass}`} />
+          <input
+            name="municipio"
+            placeholder="Município"
+            defaultValue={client?.endereco?.municipio ?? ""}
+            className={`col-span-2 ${inputClass}`}
+          />
+          <input
+            name="uf"
+            placeholder="UF"
+            maxLength={2}
+            defaultValue={client?.endereco?.uf ?? ""}
+            className={`uppercase ${inputClass}`}
+          />
         </div>
         <div className="w-40">
           <input
             name="cep"
             placeholder="CEP"
             maxLength={9}
+            defaultValue={client?.endereco?.cep ?? ""}
             className={inputClass}
             onChange={(e) => {
               const digits = onlyDigits(e.target.value);

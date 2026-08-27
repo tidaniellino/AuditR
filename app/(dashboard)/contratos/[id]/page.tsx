@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getContractFileSignedUrl } from "@/lib/storage/contracts";
 import { STATUS_DISPLAY, type ContractStatus } from "@/lib/contracts/status";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
+import { formatBRL } from "@/lib/utils";
 import { SendForSignatureForm } from "./SendForSignatureForm";
 
 export default async function ContratoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,7 +19,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
   const { data: contract } = await supabase
     .from("contracts")
     .select(
-      "id, title, status, created_at, signed_at, document_hash, generated_docx_path, generated_pdf_path, signed_document_url, clients(id, nome_razao_social, tipo_pessoa, cpf_cnpj, email), contract_templates(name, contract_type)"
+      "id, title, status, valor, created_at, signed_at, document_hash, generated_docx_path, generated_pdf_path, signed_document_url, signer_ip, signer_user_agent, signer_geolocation, clients(id, nome_razao_social, tipo_pessoa, cpf_cnpj, email), contract_templates(name, contract_type)"
     )
     .eq("id", id)
     .single();
@@ -67,7 +68,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
         </span>
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-3 rounded-card border border-edge bg-white px-6 py-5 text-sm shadow-sm shadow-ink-900/5">
+      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-3 rounded-card border border-edge bg-card px-6 py-5 text-sm shadow-sm shadow-ink-900/5">
         <dt className="text-muted">Cliente</dt>
         <dd className="text-ink_text">{client?.nome_razao_social ?? "—"}</dd>
 
@@ -84,6 +85,13 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
           {template?.name ?? "—"} {template?.contract_type ? `· ${template.contract_type}` : ""}
         </dd>
 
+        {contract.valor != null && (
+          <>
+            <dt className="text-muted">Valor acordado</dt>
+            <dd className="text-ink_text">{formatBRL(contract.valor)}</dd>
+          </>
+        )}
+
         <dt className="text-muted">Criado em</dt>
         <dd className="text-ink_text">{new Date(contract.created_at).toLocaleString("pt-BR")}</dd>
 
@@ -95,7 +103,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
         )}
       </dl>
 
-      <section className="mt-6 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+      <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
         <h2 className="text-sm font-medium text-ink_text">Documentos gerados</h2>
         <div className="mt-3 flex flex-wrap gap-3">
           {docxUrl && (
@@ -118,15 +126,45 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
           )}
         </div>
 
-        {contract.document_hash && (
-          <p className="mt-4 break-all font-mono text-[11px] text-muted">
-            Hash de validação (SHA-256): {contract.document_hash}
-          </p>
-        )}
       </section>
 
+      {contract.status === "assinado" && (
+        <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
+          <h2 className="text-sm font-medium text-ink_text">Certificado de assinatura eletrônica</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+            <dt className="text-muted">Autenticação</dt>
+            <dd className="text-ink_text">Assinatura eletrônica via OTP-Email (MP 2.200-2/2001)</dd>
+
+            {contract.signed_at && (
+              <>
+                <dt className="text-muted">Assinatura registrada em</dt>
+                <dd className="text-ink_text">{new Date(contract.signed_at).toLocaleString("pt-BR")}</dd>
+              </>
+            )}
+
+            <dt className="text-muted">IP do signatário</dt>
+            <dd className="text-ink_text">{contract.signer_ip ?? "Não disponível"}</dd>
+
+            <dt className="text-muted">Geolocalização</dt>
+            <dd className="text-ink_text">{contract.signer_geolocation ?? "Não disponível"}</dd>
+
+            {contract.signer_user_agent && (
+              <>
+                <dt className="text-muted">Navegador</dt>
+                <dd className="break-all text-xs text-ink_text">{contract.signer_user_agent}</dd>
+              </>
+            )}
+          </dl>
+          {contract.document_hash && (
+            <p className="mt-4 break-all font-mono text-[11px] text-muted">
+              Hash SHA-256 do documento original: {contract.document_hash}
+            </p>
+          )}
+        </section>
+      )}
+
       {canSend && (
-        <section className="mt-6 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+        <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
           <h2 className="text-sm font-medium text-ink_text">Assinatura eletrônica</h2>
           <p className="mt-1 text-xs text-muted">
             Envia um e-mail para o cliente com um código de 6 dígitos, válido por 24 horas, para assinar o
@@ -139,7 +177,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
       )}
 
       {!!history?.length && (
-        <section className="mt-6 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+        <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
           <h2 className="text-sm font-medium text-ink_text">Histórico</h2>
           <div className="mt-3 flex flex-col divide-y divide-edge">
             {history.map((h, i) => (

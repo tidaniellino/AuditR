@@ -5,10 +5,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { mergeDocxTemplate, extractDocxParagraphs } from "@/lib/documents/docx";
-import { buildContractPdf } from "@/lib/documents/pdf";
+import { buildContractPdf, type ContractPartner } from "@/lib/documents/pdf";
 import { generateSigningCode, hashSigningCode, SIGNING_CODE_TTL_HOURS } from "@/lib/signing/codes";
 import { sendSigningEmail } from "@/lib/email/resend";
+import { isWhatsAppConfigured, sendSigningWhatsAppMessage } from "@/lib/whatsapp/business";
 import { getBaseUrl } from "@/lib/url";
+import { formatBRL } from "@/lib/utils";
+import { ROLE_LABELS } from "@/lib/auth/permissions";
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type Profile = { org_id: string; full_name: string };
 
 async function requireUser() {
   const supabase = await createClient();
@@ -26,23 +32,50 @@ function isDocxFile(fileName: string | null): boolean {
   return !!fileName && fileName.toLowerCase().endsWith(".docx");
 }
 
-export interface ContractFormState {
-  error?: string;
+async function loadExtraClause(
+  supabase: SupabaseClient,
+  orgId: string,
+  clauseId: string | null
+): Promise<{ title: string; content: string } | null> {
+  if (!clauseId) return null;
+
+  const { data: clause } = await supabase
+    .from("clauses")
+    .select("title, current_version_id")
+    .eq("id", clauseId)
+    .eq("org_id", orgId)
+    .single();
+  if (!clause?.current_version_id) return null;
+
+  const { data: version } = await supabase
+    .from("clause_versions")
+    .select("content")
+    .eq("id", clause.current_version_id)
+    .single();
+  if (!version?.content) return null;
+
+  return { title: clause.title, content: version.content };
 }
 
-export async function createContract(
-  _prevState: ContractFormState | undefined,
-  formData: FormData
-): Promise<ContractFormState> {
-  const { supabase, user, profile } = await requireUser();
-
-  const clientId = String(formData.get("client_id") ?? "");
-  const templateId = String(formData.get("template_id") ?? "");
-  const titleInput = String(formData.get("title") ?? "").trim();
-
-  if (!clientId) return { error: "Selecione o cliente." };
-  if (!templateId) return { error: "Selecione o modelo de contrato." };
-
+async function generateContract({
+  supabase,
+  userId,
+  profile,
+  clientId,
+  templateId,
+  titleInput,
+  valor,
+  clauseId,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  profile: Profile;
+  clientId: string;
+  templateId: string;
+  titleInput: string;
+  valor: number | null;
+  clauseId?: string | null;
+}): Promise<{ contractId: string } | { error: string }> {
   const [{ data: client }, { data: template }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", clientId).single(),
     supabase.from("contract_templates").select("*").eq("id", templateId).single(),
@@ -65,7 +98,7 @@ export async function createContract(
     return { error: "Não foi possível ler o arquivo do modelo. Tente novamente." };
   }
 
-  const title = titleInput || `${template.name} — ${client.nome_razao_social}`;
+  const title = titleInput || client.nome_razao_social;
   const endereco = client.endereco as Record<string, string | null> | null;
   const enderecoTexto = endereco
     ? [endereco.logradouro, endereco.numero].filter(Boolean).join(", ") +
@@ -74,7 +107,33 @@ export async function createContract(
       (endereco.uf ? `/${endereco.uf}` : "")
     : "";
 
-  const { data: org } = await supabase.from("organizations").select("name").eq("id", profile.org_id).single();
+  const [{ data: org }, { data: partners }, extraClause] = await Promise.all([
+    supabase.from("organizations").select("*").eq("id", profile.org_id).single(),
+    supabase
+      .from("profiles")
+      .select("id, full_name, cpf")
+      .eq("org_id", profile.org_id)
+      .eq("role", "socio")
+      .eq("active", true)
+      .order("created_at", { ascending: true }),
+    loadExtraClause(supabase, profile.org_id, clauseId ?? null),
+  ]);
+
+  const orgEndereco = org?.endereco as Record<string, string | null> | null;
+  const orgEnderecoTexto = orgEndereco
+    ? [orgEndereco.logradouro, orgEndereco.numero].filter(Boolean).join(", ") +
+      (orgEndereco.bairro ? ` - ${orgEndereco.bairro}` : "") +
+      (orgEndereco.municipio ? `, ${orgEndereco.municipio}` : "") +
+      (orgEndereco.uf ? `/${orgEndereco.uf}` : "")
+    : "";
+  const orgCity =
+    orgEndereco?.municipio && orgEndereco?.uf ? `${orgEndereco.municipio}/${orgEndereco.uf}` : null;
+  const contractPartners: ContractPartner[] = (partners ?? []).map((p) => ({
+    id: p.id,
+    fullName: p.full_name,
+    cpf: p.cpf,
+    roleTitle: ROLE_LABELS.socio,
+  }));
 
   const mergeData = {
     cliente_nome: client.nome_razao_social,
@@ -84,7 +143,13 @@ export async function createContract(
     cliente_endereco: enderecoTexto,
     contrato_titulo: title,
     contrato_tipo: template.contract_type ?? "",
+    contrato_valor: valor != null ? formatBRL(valor) : "",
     escritorio_nome: org?.name ?? "",
+    escritorio_cnpj: org?.cnpj ?? "",
+    escritorio_endereco: orgEnderecoTexto,
+    escritorio_telefone: org?.telefone ?? "",
+    escritorio_email: org?.email ?? "",
+    socio_nome: contractPartners[0]?.fullName ?? "",
     data_atual: new Date().toLocaleDateString("pt-BR"),
   };
 
@@ -97,17 +162,6 @@ export async function createContract(
     };
   }
 
-  const paragraphs = extractDocxParagraphs(mergedDocx);
-  const pdfBytes = await buildContractPdf({
-    title,
-    orgName: org?.name ?? "",
-    contractType: template.contract_type,
-    clientName: client.nome_razao_social,
-    clientDocument: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
-    clientEmail: client.email,
-    bodyParagraphs: paragraphs,
-  });
-
   const { data: contract, error: insertError } = await supabase
     .from("contracts")
     .insert({
@@ -115,12 +169,28 @@ export async function createContract(
       client_id: clientId,
       template_id: templateId,
       title,
-      created_by: user.id,
+      valor,
+      created_by: userId,
     })
     .select("id")
     .single();
 
   if (insertError || !contract) return { error: "Não foi possível criar o contrato." };
+
+  const paragraphs = extractDocxParagraphs(mergedDocx);
+  const pdfBytes = await buildContractPdf({
+    contractId: contract.id,
+    templateName: template.name,
+    orgName: org?.name ?? "",
+    orgCity,
+    contractType: template.contract_type,
+    clientName: client.nome_razao_social,
+    clientDocument: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
+    clientEmail: client.email,
+    bodyParagraphs: paragraphs,
+    extraClause,
+    partners: contractPartners,
+  });
 
   const basePath = `${profile.org_id}/${contract.id}`;
   const [docxUpload, pdfUpload] = await Promise.all([
@@ -148,7 +218,7 @@ export async function createContract(
     })
     .eq("id", contract.id);
 
-  redirect(`/contratos/${contract.id}`);
+  return { contractId: contract.id };
 }
 
 export interface SendResult {
@@ -156,14 +226,11 @@ export interface SendResult {
   success?: string;
 }
 
-export async function sendForSignature(
-  _prevState: SendResult | undefined,
-  formData: FormData
+async function sendSignatureCodeById(
+  supabase: SupabaseClient,
+  profile: Profile,
+  contractId: string
 ): Promise<SendResult> {
-  const { supabase, profile } = await requireUser();
-  const contractId = String(formData.get("contract_id") ?? "");
-  if (!contractId) return { error: "Contrato não encontrado." };
-
   const { data: contract } = await supabase.from("contracts").select("*").eq("id", contractId).single();
   if (!contract) return { error: "Contrato não encontrado." };
   if (contract.status === "assinado") return { error: "Este contrato já foi assinado." };
@@ -210,7 +277,81 @@ export async function sendForSignature(
     return { error: "Código gerado, mas não foi possível enviar o e-mail. Tente reenviar em instantes." };
   }
 
+  let whatsappSent = false;
+  let whatsappWarning: string | null = null;
+  if (client.telefone && isWhatsAppConfigured()) {
+    try {
+      await sendSigningWhatsAppMessage({
+        to: client.telefone,
+        clientName: client.nome_razao_social,
+        contractTitle: contract.title,
+        code,
+        contractId,
+      });
+      whatsappSent = true;
+    } catch (err) {
+      whatsappWarning = err instanceof Error ? err.message : "Falha ao enviar por WhatsApp.";
+    }
+  }
+
   revalidatePath(`/contratos/${contractId}`);
   revalidatePath("/contratos");
-  return { success: `Código enviado para ${client.email}.` };
+
+  const success = whatsappSent
+    ? `Código enviado para ${client.email} e por WhatsApp (${client.telefone}).`
+    : `Código enviado para ${client.email}.`;
+
+  return whatsappWarning ? { success: `${success} Não foi possível enviar por WhatsApp: ${whatsappWarning}` } : { success };
+}
+
+export async function sendForSignature(
+  _prevState: SendResult | undefined,
+  formData: FormData
+): Promise<SendResult> {
+  const { supabase, profile } = await requireUser();
+  const contractId = String(formData.get("contract_id") ?? "");
+  if (!contractId) return { error: "Contrato não encontrado." };
+
+  return sendSignatureCodeById(supabase, profile, contractId);
+}
+
+export interface ContractFormState {
+  error?: string;
+}
+
+export async function createContract(
+  _prevState: ContractFormState | undefined,
+  formData: FormData
+): Promise<ContractFormState> {
+  const { supabase, user, profile } = await requireUser();
+
+  const clientId = String(formData.get("client_id") ?? "");
+  const templateId = String(formData.get("template_id") ?? "");
+  const titleInput = String(formData.get("title") ?? "").trim();
+  const valorRaw = String(formData.get("valor") ?? "").trim();
+  const clauseId = String(formData.get("clause_id") ?? "").trim() || null;
+
+  if (!clientId) return { error: "Selecione o cliente." };
+  if (!templateId) return { error: "Selecione o modelo de contrato." };
+
+  let valor: number | null = null;
+  if (valorRaw) {
+    valor = Number(valorRaw.replace(/\./g, "").replace(",", "."));
+    if (Number.isNaN(valor) || valor < 0) return { error: "Valor acordado inválido." };
+  }
+
+  const result = await generateContract({
+    supabase,
+    userId: user.id,
+    profile,
+    clientId,
+    templateId,
+    titleInput,
+    valor,
+    clauseId,
+  });
+  if ("error" in result) return result;
+
+  revalidatePath("/contratos");
+  redirect(`/contratos/${result.contractId}`);
 }

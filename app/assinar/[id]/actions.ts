@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { callSigningFunction } from "@/lib/supabase/functions";
 
@@ -33,10 +34,18 @@ export async function verifySigningCode(
   if (!contractId) return { error: "Contrato não encontrado." };
   if (!/^\d{6}$/.test(code)) return { error: "Digite os 6 números do código recebido por e-mail." };
 
+  const h = await headers();
+  // x-forwarded-for pode trazer uma lista "cliente, proxy1, proxy2" — o
+  // primeiro endereço é o do visitante original.
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+  const userAgent = h.get("user-agent") || null;
+
   const result = await callSigningFunction<{ ok: true; documentHash: string }>({
     action: "verify",
     contract_id: contractId,
     code,
+    ip,
+    userAgent,
   });
 
   if (!result.ok) {

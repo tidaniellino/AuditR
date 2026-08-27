@@ -19,7 +19,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
       <h1 className="mt-3 font-display text-3xl text-ink_text">{client.nome_razao_social}</h1>
       {client.nome_fantasia && <p className="mt-1 text-sm text-muted">{client.nome_fantasia}</p>}
 
-      <dl className="mt-8 grid grid-cols-2 gap-x-4 gap-y-4 rounded-card border border-edge bg-white px-6 py-5 text-sm shadow-sm shadow-ink-900/5">
+      <dl className="mt-8 grid grid-cols-2 gap-x-4 gap-y-4 rounded-card border border-edge bg-card px-6 py-5 text-sm shadow-sm shadow-ink-900/5">
         <dt className="text-muted">{client.tipo_pessoa === "PF" ? "CPF" : "CNPJ"}</dt>
         <dd className="font-mono text-ink_text">{formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa)}</dd>
 

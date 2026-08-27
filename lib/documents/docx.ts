@@ -9,7 +9,13 @@ export interface ContractMergeData {
   cliente_endereco: string;
   contrato_titulo: string;
   contrato_tipo: string;
+  contrato_valor: string;
   escritorio_nome: string;
+  escritorio_cnpj: string;
+  escritorio_endereco: string;
+  escritorio_telefone: string;
+  escritorio_email: string;
+  socio_nome: string;
   data_atual: string;
 }
 

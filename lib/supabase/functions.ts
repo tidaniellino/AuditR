@@ -6,6 +6,8 @@ export async function callSigningFunction<T = unknown>(body: {
   action: "info" | "verify";
   contract_id: string;
   code?: string;
+  ip?: string | null;
+  userAgent?: string | null;
 }): Promise<{ ok: true; data: T } | { ok: false; status: number; error: string }> {
   const res = await fetch(`${FUNCTIONS_URL}/assinatura`, {
     method: "POST",

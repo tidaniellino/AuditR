@@ -40,7 +40,7 @@ export default async function ClausulasPage() {
         {isEditor && (
           <Link
             href="/clausulas/novo"
-            className="shrink-0 rounded-card bg-brand-gradient px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-via/35"
+            className="shrink-0 rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
           >
             + Nova cláusula
           </Link>
@@ -48,16 +48,16 @@ export default async function ClausulasPage() {
       </div>
 
       {!clauses?.length ? (
-        <div className="rounded-card border border-dashed border-edge bg-white px-6 py-10 text-center">
+        <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
           <p className="text-sm font-medium text-ink_text">Nenhuma cláusula cadastrada ainda</p>
           <p className="mt-1 text-sm text-muted">
             {isEditor
               ? "Cadastre a primeira cláusula-padrão do escritório."
-              : "Peça a um Sócio ou Compliance Legal para cadastrar as cláusulas do escritório."}
+              : "Peça a um Sócio para cadastrar as cláusulas do escritório."}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-edge bg-white shadow-sm shadow-ink-900/5">
+        <div className="overflow-hidden rounded-card border border-edge bg-card shadow-sm shadow-ink-900/5">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-edge bg-mist text-xs uppercase tracking-wide text-muted">

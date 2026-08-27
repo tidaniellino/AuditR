@@ -66,7 +66,7 @@ export default async function EditarClausulaPage({ params }: { params: Promise<{
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">Biblioteca</p>
       <h1 className="mt-2 font-display text-3xl text-ink_text">Editar cláusula</h1>
 
-      <section className="mt-8 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+      <section className="mt-8 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
         <h2 className="mb-4 text-sm font-medium text-ink_text">Dados gerais</h2>
         <ClauseMetaForm
           clauseId={clause.id}
@@ -78,12 +78,12 @@ export default async function EditarClausulaPage({ params }: { params: Promise<{
         />
       </section>
 
-      <section className="mt-6 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+      <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
         <h2 className="mb-4 text-sm font-medium text-ink_text">Nova versão do conteúdo</h2>
         <NewVersionForm clauseId={clause.id} currentContent={current?.content ?? ""} />
       </section>
 
-      <section className="mt-6 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+      <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
         <h2 className="mb-4 text-sm font-medium text-ink_text">Histórico de versões</h2>
         <div className="flex flex-col divide-y divide-edge">
           {versions.map((v) => (
@@ -105,7 +105,7 @@ export default async function EditarClausulaPage({ params }: { params: Promise<{
         </div>
       </section>
 
-      <section className="mt-6 rounded-card border border-edge bg-white p-6 shadow-sm shadow-ink-900/5">
+      <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
         <h2 className="text-sm font-medium text-ink_text">Incompatibilidades</h2>
         <p className="mt-1 text-xs text-muted">
           Usadas na validação cruzada antes da exportação do contrato (ex.: foro cível x arbitragem).

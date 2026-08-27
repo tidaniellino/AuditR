@@ -1,18 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { canEditClauses, type UserRole } from "@/lib/auth/permissions";
-import { Alert } from "@/components/ui/Alert";
+import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
 import { PencilIcon } from "@/components/dashboard/icons";
 import { toggleTemplateActive } from "./actions";
 import { DeleteTemplateButton } from "./DeleteTemplateButton";
 import { getTemplateFileSignedUrl, formatFileSize } from "@/lib/storage/templates";
 
-export default async function ModelosPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erro?: string; sucesso?: string }>;
-}) {
-  const { erro, sucesso } = await searchParams;
+export default async function ModelosPage() {
   const supabase = await createClient();
 
   const {
@@ -42,6 +37,7 @@ export default async function ModelosPage({
 
   return (
     <div>
+      <SearchParamsToast />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">Modelos</p>
@@ -54,41 +50,30 @@ export default async function ModelosPage({
         {isEditor && (
           <Link
             href="/modelos/novo"
-            className="shrink-0 rounded-card bg-brand-gradient px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-via/35"
+            className="shrink-0 rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
           >
             + Novo modelo
           </Link>
         )}
       </div>
 
-      {erro && (
-        <div className="mb-4">
-          <Alert tone="error">{erro}</Alert>
-        </div>
-      )}
-      {sucesso && (
-        <div className="mb-4">
-          <Alert tone="success">{sucesso}</Alert>
-        </div>
-      )}
-
       {!isEditor && (
         <p className="mb-6 text-xs text-muted">
-          Criar, editar ou excluir modelos é restrito a Sócio ou Compliance Legal.
+          Criar, editar ou excluir modelos requer uma conta ativa no escritório.
         </p>
       )}
 
       {!templates?.length ? (
-        <div className="rounded-card border border-dashed border-edge bg-white px-6 py-10 text-center">
+        <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
           <p className="text-sm font-medium text-ink_text">Nenhum modelo cadastrado ainda</p>
           <p className="mt-1 text-sm text-muted">
             {isEditor
               ? "Cadastre o primeiro modelo a partir de um arquivo .doc ou .docx."
-              : "Peça a um Sócio ou Compliance Legal para cadastrar os modelos do escritório."}
+              : "Peça a um Sócio para cadastrar os modelos do escritório."}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-edge bg-white shadow-sm shadow-ink-900/5">
+        <div className="overflow-hidden rounded-card border border-edge bg-card shadow-sm shadow-ink-900/5">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-edge bg-mist text-xs uppercase tracking-wide text-muted">

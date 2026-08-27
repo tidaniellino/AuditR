@@ -57,6 +57,99 @@ export function TemplatesIcon({ className }: IconProps) {
   );
 }
 
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function SendIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <path d="M21 3L10.5 13.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 3l-7 18-4-8-8-4 19-6Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CollapseIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+      <path d="M14.5 9.5L12 12l2.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ExpandIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+      <path d="M12.5 9.5L15 12l-2.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function SunIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path
+        d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function MoonIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function LogoutIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5v-13A1.5 1.5 0 0 1 5.5 4H9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15.5 16l4-4-4-4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19.25 12H9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function BuildingIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
+      <rect x="4" y="3" width="11" height="18" rx="1" />
+      <path d="M15 8.5h4.25a1 1 0 0 1 1 1V21H15" />
+      <path d="M7.25 7h1.5M7.25 10.5h1.5M7.25 14h1.5M11 7h1.5M11 10.5h1.5M11 14h1.5" strokeLinecap="round" />
+      <path d="M17 12.5h1M17 16h1" strokeLinecap="round" />
+      <path d="M8 21v-3.25a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V21" />
+    </svg>
+  );
+}
+
+export function HelpIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.25" />
+      <path
+        d="M9.5 9.25a2.5 2.5 0 1 1 3.6 2.24c-.75.38-1.1.9-1.1 1.76v.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="17" r="0.75" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function ContractsIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} stroke="currentColor" aria-hidden="true">

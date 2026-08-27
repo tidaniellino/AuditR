@@ -4,17 +4,17 @@ import { useFormState } from "react-dom";
 import { addClauseVersion, type ClauseFormState } from "../../actions";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: ClauseFormState = {};
 
 export function NewVersionForm({ clauseId, currentContent }: { clauseId: string; currentContent: string }) {
   const [state, formAction] = useFormState(addClauseVersion, initialState);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="clause_id" value={clauseId} />
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
 
       <Field label="Conteúdo da nova versão" htmlFor="content" hint="Use {{variavel}} para campos dinâmicos">
         <textarea

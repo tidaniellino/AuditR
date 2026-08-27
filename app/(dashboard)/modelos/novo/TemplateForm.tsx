@@ -4,17 +4,16 @@ import { useFormState } from "react-dom";
 import { createTemplate, type TemplateFormState } from "../actions";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: TemplateFormState = {};
 
 export function TemplateForm() {
   const [state, formAction] = useFormState(createTemplate, initialState);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-4">
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
-
       <Field label="Nome do modelo" htmlFor="name">
         <input id="name" name="name" required className={inputClass} />
       </Field>

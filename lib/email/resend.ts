@@ -31,7 +31,7 @@ O código tem um prazo de 24 horas. Depois do prazo é necessário solicitar o r
       <p>Você recebeu um novo contrato: <strong>${escapeHtml(contractTitle)}</strong>.</p>
       <p>Clique no botão abaixo para assinatura e insira o código para assinar o documento:</p>
       <p style="text-align:center; margin: 24px 0;">
-        <a href="${signUrl}" style="background: linear-gradient(135deg,#123A5E,#1B6E86,#33A66E); color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
+        <a href="${signUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
           Assinar contrato
         </a>
       </p>
@@ -48,6 +48,50 @@ O código tem um prazo de 24 horas. Depois do prazo é necessário solicitar o r
     from: FROM,
     to,
     subject: `Contrato para assinatura: ${contractTitle}`,
+    text,
+    html,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function sendInviteEmail({
+  to,
+  orgName,
+  roleLabel,
+  inviteUrl,
+}: {
+  to: string;
+  orgName: string;
+  roleLabel: string;
+  inviteUrl: string;
+}) {
+  const text = `Olá!
+
+Você foi convidado(a) para acessar o ${orgName} no AuditR Contratos, com o perfil de ${roleLabel}.
+
+Clique no link abaixo para criar sua senha e acessar o sistema:
+${inviteUrl}
+
+O convite tem um prazo de 7 dias.`;
+
+  const html = `
+    <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 480px; margin: 0 auto; color: #1C1D22;">
+      <p>Olá!</p>
+      <p>Você foi convidado(a) para acessar o <strong>${escapeHtml(orgName)}</strong> no AuditR Contratos, com o perfil de <strong>${escapeHtml(roleLabel)}</strong>.</p>
+      <p style="text-align:center; margin: 24px 0;">
+        <a href="${inviteUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
+          Criar acesso
+        </a>
+      </p>
+      <p style="color:#6B6A63; font-size: 13px;">O convite tem um prazo de 7 dias.</p>
+    </div>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Convite para acessar o ${orgName}`,
     text,
     html,
   });

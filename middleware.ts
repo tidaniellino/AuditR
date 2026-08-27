@@ -1,13 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { canEditClauses, type UserRole } from "@/lib/auth/permissions";
+import { canEditClauses, canManageOrg, type UserRole } from "@/lib/auth/permissions";
 
 // Bloqueiam acesso autenticado (redireciona pra "/" se já houver sessão).
 const AUTH_PUBLIC_PATHS = ["/login", "/onboarding"];
-// Sempre públicas — o assinante do contrato nunca tem conta no sistema.
-const ALWAYS_PUBLIC_PATHS = ["/assinar"];
+// Sempre públicas — o assinante do contrato e o convidado ainda sem conta
+// nunca têm sessão no sistema.
+const ALWAYS_PUBLIC_PATHS = ["/assinar", "/convite"];
 
-// Rotas de escrita que exigem perfil Sócio ou Compliance Legal (RN — RBAC).
+// Rotas de escrita de cláusulas/modelos — hoje liberado a qualquer perfil
+// autenticado (Sócio ou Funcionário); mantido como ponto único de checagem
+// caso volte a existir uma role sem essa permissão.
 // A listagem de /modelos fica aberta a todos — só criar/editar é restrito.
 const CLAUSE_EDITOR_PATTERNS = [
   /^\/clausulas\/novo/,
@@ -15,6 +18,16 @@ const CLAUSE_EDITOR_PATTERNS = [
   /^\/modelos\/novo/,
   /^\/modelos\/[^/]+\/editar/,
 ];
+
+// Dados da empresa, sócios e cadastro de usuários — só Sócio/Admin.
+const ORG_MANAGER_PATTERNS = [/^\/empresa/];
+
+// Impede que o navegador restaure uma página autenticada a partir do cache
+// (bfcache/voltar) depois de logout — cada acesso exige revalidação real.
+function noStore(response: NextResponse): NextResponse {
+  response.headers.set("Cache-Control", "no-store, must-revalidate");
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
   const { response, supabase, user } = await updateSession(request);
@@ -27,31 +40,35 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+    return noStore(NextResponse.redirect(url));
   }
 
   if (user && isAuthPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    return noStore(NextResponse.redirect(url));
   }
 
   const requiresClauseEditor = CLAUSE_EDITOR_PATTERNS.some((re) => re.test(pathname));
-  if (user && requiresClauseEditor) {
+  const requiresOrgManager = ORG_MANAGER_PATTERNS.some((re) => re.test(pathname));
+  if (user && (requiresClauseEditor || requiresOrgManager)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    if (!canEditClauses(profile?.role as UserRole | undefined)) {
+    const role = profile?.role as UserRole | undefined;
+    const allowed = requiresOrgManager ? canManageOrg(role) : canEditClauses(role);
+
+    if (!allowed) {
       const url = request.nextUrl.clone();
       url.pathname = "/acesso-negado";
-      return NextResponse.redirect(url);
+      return noStore(NextResponse.redirect(url));
     }
   }
 
-  return response;
+  return noStore(response);
 }
 
 export const config = {

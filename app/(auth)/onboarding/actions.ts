@@ -50,7 +50,7 @@ export async function createOrganizationAndOwner(
     email,
     password,
     options: {
-      data: { org_id: orgId, full_name: fullName },
+      data: { org_id: orgId, full_name: fullName, cpf: cpfCnpj.length === 11 ? cpfCnpj : null },
     },
   });
 

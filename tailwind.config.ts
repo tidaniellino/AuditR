@@ -1,10 +1,13 @@
 import type { Config } from "tailwindcss";
 
 export default {
+  darkMode: "class",
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
+        // Painel do menu lateral é sempre escuro (cor de marca fixa), não
+        // varia com o tema — por isso continua literal, não vira variável.
         ink: {
           950: "#101B30",
           900: "#14213B",
@@ -12,58 +15,53 @@ export default {
           600: "#47597C",
           400: "#8291AC",
         },
-        paper: {
-          50: "#FAF8F3",
-          100: "#F1EEE6",
-          200: "#E7E2D6",
+        // Cores de marca também ficam fixas — identidade visual não deve
+        // mudar entre os temas, só a superfície ao redor delas. Paleta
+        // branco + azul marinho: um único matiz de azul, do mais escuro
+        // (sidebar) ao mais claro (acentos/estados ativos).
+        brand: {
+          from: "#123A5E",
+          via: "#1D4E89",
+          to: "#2F6FB0",
+          tint: "var(--brand-tint)",
         },
-        hairline: "#DEDACF",
+        // Daqui pra baixo: tokens de superfície/texto/estado, todos via
+        // variável CSS (definida em globals.css) para dar suporte a dark mode.
         stamp: {
-          DEFAULT: "#A8391F",
-          dim: "#832C16",
-          light: "#C1573C",
-          tint: "#F5E5DF",
+          DEFAULT: "var(--stamp)",
+          dim: "var(--stamp-dim)",
+          light: "var(--stamp-light)",
+          tint: "var(--stamp-tint)",
         },
         seal: {
-          DEFAULT: "#3F5D42",
-          tint: "#E7EDE4",
+          DEFAULT: "var(--seal)",
+          tint: "var(--seal-tint)",
         },
         // Azul de status "enviado para assinatura" (distinto do brand-via, que é teal).
         info: {
-          DEFAULT: "#2354C7",
-          tint: "#E6ECFB",
+          DEFAULT: "var(--info)",
+          tint: "var(--info-tint)",
         },
-        brand: {
-          from: "#123A5E",
-          via: "#1B6E86",
-          to: "#33A66E",
-          tint: "#E4F1EB",
-        },
-        mist: "#F6F8F9",
-        edge: "#E4E8EC",
-        ink_text: "#1C1D22",
-        muted: "#6B6A63",
+        mist: "var(--mist)",
+        edge: "var(--edge)",
+        ink_text: "var(--foreground)",
+        muted: "var(--muted-foreground)",
         // Tokens shadcn/ui espera nos componentes gerados (bg-primary, border-border, etc.).
-        // "muted"/"muted-foreground" ficam de fora de propósito: "muted" já é usado em todo
-        // o app como cor de texto secundário (text-muted) e não pode virar um fundo claro.
-        background: "#FAF8F3",
-        foreground: "#1C1D22",
-        card: { DEFAULT: "#FFFFFF", foreground: "#1C1D22" },
-        popover: { DEFAULT: "#FFFFFF", foreground: "#1C1D22" },
-        primary: { DEFAULT: "#1B6E86", foreground: "#FFFFFF" },
-        secondary: { DEFAULT: "#F6F8F9", foreground: "#1C1D22" },
-        accent: { DEFAULT: "#E4F1EB", foreground: "#123A5E" },
-        destructive: { DEFAULT: "#A8391F", foreground: "#FFFFFF" },
-        border: "#E4E8EC",
-        input: "#E4E8EC",
-        ring: "#1B6E86",
-      },
-      backgroundImage: {
-        "brand-gradient": "linear-gradient(135deg, #123A5E 0%, #1B6E86 55%, #33A66E 100%)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        card: { DEFAULT: "var(--card)", foreground: "var(--foreground)" },
+        popover: { DEFAULT: "var(--card)", foreground: "var(--foreground)" },
+        primary: { DEFAULT: "#1D4E89", foreground: "#FFFFFF" },
+        secondary: { DEFAULT: "var(--mist)", foreground: "var(--foreground)" },
+        accent: { DEFAULT: "var(--brand-tint)", foreground: "#123A5E" },
+        destructive: { DEFAULT: "var(--stamp)", foreground: "#FFFFFF" },
+        border: "var(--edge)",
+        input: "var(--edge)",
+        ring: "#1D4E89",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["Arial", "Helvetica", "system-ui", "sans-serif"],
+        sans: ["Arial", "Helvetica", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       borderRadius: {

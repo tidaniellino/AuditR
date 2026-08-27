@@ -36,7 +36,7 @@ export function ImportPanel({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-card border border-edge bg-white px-4 py-2.5 text-sm font-medium text-ink_text hover:bg-mist"
+        className="inline-flex items-center gap-2 rounded-card border border-edge bg-card px-4 py-2.5 text-sm font-medium text-ink_text hover:bg-mist"
       >
         Importar do Excel
       </button>
@@ -44,7 +44,7 @@ export function ImportPanel({
   }
 
   return (
-    <div className="rounded-card border border-edge bg-white p-5 shadow-sm shadow-ink-900/5">
+    <div className="rounded-card border border-edge bg-card p-5 shadow-sm shadow-ink-900/5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-ink_text">{title}</p>
@@ -114,7 +114,7 @@ function SubmitButtonInline({ pending }: { pending: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center justify-center rounded-card bg-brand-gradient px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-via/35 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+      className="inline-flex items-center justify-center rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-primary disabled:hover:shadow-none"
     >
       {pending ? "Importando..." : "Importar"}
     </button>

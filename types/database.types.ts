@@ -576,10 +576,14 @@ export type Database = {
             | null
           signed_at: string | null
           signed_document_url: string | null
+          signer_geolocation: string | null
+          signer_ip: string | null
+          signer_user_agent: string | null
           status: Database["public"]["Enums"]["document_status"]
           template_id: string
           title: string
           updated_at: string
+          valor: number | null
         }
         Insert: {
           archived_at?: string | null
@@ -598,10 +602,14 @@ export type Database = {
             | null
           signed_at?: string | null
           signed_document_url?: string | null
+          signer_geolocation?: string | null
+          signer_ip?: string | null
+          signer_user_agent?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           template_id: string
           title: string
           updated_at?: string
+          valor?: number | null
         }
         Update: {
           archived_at?: string | null
@@ -620,10 +628,14 @@ export type Database = {
             | null
           signed_at?: string | null
           signed_document_url?: string | null
+          signer_geolocation?: string | null
+          signer_ip?: string | null
+          signer_user_agent?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           template_id?: string
           title?: string
           updated_at?: string
+          valor?: number | null
         }
         Relationships: [
           {
@@ -701,29 +713,125 @@ export type Database = {
         Row: {
           cnpj: string | null
           created_at: string
+          email: string | null
+          endereco: Json | null
           id: string
           name: string
           owner_claimed_at: string | null
+          telefone: string | null
         }
         Insert: {
           cnpj?: string | null
           created_at?: string
+          email?: string | null
+          endereco?: Json | null
           id?: string
           name: string
           owner_claimed_at?: string | null
+          telefone?: string | null
         }
         Update: {
           cnpj?: string | null
           created_at?: string
+          email?: string | null
+          endereco?: Json | null
           id?: string
           name?: string
           owner_claimed_at?: string | null
+          telefone?: string | null
         }
         Relationships: []
+      }
+      company_partners: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          org_id: string
+          role_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          org_id: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          org_id?: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           active: boolean
+          avatar_path: string | null
+          cpf: string | null
           created_at: string
           email: string
           full_name: string
@@ -734,6 +842,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          avatar_path?: string | null
+          cpf?: string | null
           created_at?: string
           email: string
           full_name: string
@@ -744,6 +854,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          avatar_path?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string
           full_name?: string
@@ -809,6 +921,72 @@ export type Database = {
           },
           {
             foreignKeyName: "signature_codes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signature_audit_logs: {
+        Row: {
+          contract_id: string
+          created_at: string
+          document_hash: string
+          geolocation: string | null
+          id: string
+          ip: string | null
+          org_id: string
+          otp_validated_at: string
+          signature_registered_at: string
+          signer_cpf: string | null
+          signer_email: string
+          signer_name: string
+          signer_whatsapp: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          document_hash: string
+          geolocation?: string | null
+          id?: string
+          ip?: string | null
+          org_id: string
+          otp_validated_at: string
+          signature_registered_at: string
+          signer_cpf?: string | null
+          signer_email: string
+          signer_name: string
+          signer_whatsapp?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          document_hash?: string
+          geolocation?: string | null
+          id?: string
+          ip?: string | null
+          org_id?: string
+          otp_validated_at?: string
+          signature_registered_at?: string
+          signer_cpf?: string | null
+          signer_email?: string
+          signer_name?: string
+          signer_whatsapp?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_audit_logs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_audit_logs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1047,6 +1225,16 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_invite_info: {
+        Args: { p_token: string }
+        Returns: {
+          org_id: string
+          org_name: string
+          email: string
+          role: Database["public"]["Enums"]["user_role"]
+          valid: boolean
+        }[]
+      }
       next_clause_version_number: {
         Args: { p_clause_id: string }
         Returns: string
@@ -1077,6 +1265,7 @@ export type Database = {
         | "advogado_junior"
         | "contador_senior"
         | "contador_junior"
+        | "funcionario"
         | "admin"
       whatsapp_status: "pending" | "sent" | "delivered" | "read" | "failed"
     }
@@ -1223,6 +1412,7 @@ export const Constants = {
         "advogado_junior",
         "contador_senior",
         "contador_junior",
+        "funcionario",
         "admin",
       ],
       whatsapp_status: ["pending", "sent", "delivered", "read", "failed"],

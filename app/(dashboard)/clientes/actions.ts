@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fetchCnpjData, type CnpjLookupResult } from "@/lib/receita-federal/cnpj";
 import { fetchCepData, type CepLookupResult } from "@/lib/cep/viacep";
@@ -104,7 +105,112 @@ export async function createClientRecord(
     return { error: "Não foi possível salvar o cliente. Tente novamente." };
   }
 
-  redirect("/clientes");
+  redirect(`/clientes?sucesso=${encodeURIComponent(`Cliente "${nomeRazaoSocial}" cadastrado.`)}`);
+}
+
+export async function updateClientRecord(
+  _prevState: { error?: string } | undefined,
+  formData: FormData
+): Promise<{ error?: string } | undefined> {
+  const clientId = String(formData.get("client_id") ?? "");
+  const tipoPessoa = String(formData.get("tipo_pessoa") ?? "") as "PF" | "PJ";
+  const cpfCnpj = onlyDigits(String(formData.get("cpf_cnpj") ?? ""));
+  const nomeRazaoSocial = String(formData.get("nome_razao_social") ?? "").trim();
+  const nomeFantasia = String(formData.get("nome_fantasia") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const telefone = String(formData.get("telefone") ?? "").trim();
+
+  if (!clientId) return { error: "Cliente não encontrado." };
+  if (tipoPessoa !== "PF" && tipoPessoa !== "PJ") {
+    return { error: "Selecione o tipo de pessoa (PF ou PJ)." };
+  }
+  if (!isValidCpfCnpj(cpfCnpj, tipoPessoa)) {
+    return { error: tipoPessoa === "PF" ? "CPF inválido." : "CNPJ inválido." };
+  }
+  if (!nomeRazaoSocial) {
+    return { error: tipoPessoa === "PF" ? "Nome é obrigatório." : "Razão social é obrigatória." };
+  }
+
+  const endereco = {
+    logradouro: String(formData.get("logradouro") ?? ""),
+    numero: String(formData.get("numero") ?? ""),
+    complemento: String(formData.get("complemento") ?? "") || null,
+    bairro: String(formData.get("bairro") ?? ""),
+    municipio: String(formData.get("municipio") ?? ""),
+    uf: String(formData.get("uf") ?? ""),
+    cep: String(formData.get("cep") ?? ""),
+  };
+  const hasEndereco = Object.values(endereco).some((v) => v);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      tipo_pessoa: tipoPessoa,
+      cpf_cnpj: cpfCnpj,
+      nome_razao_social: nomeRazaoSocial,
+      nome_fantasia: nomeFantasia || null,
+      email: email || null,
+      telefone: telefone || null,
+      endereco: hasEndereco ? endereco : null,
+    })
+    .eq("id", clientId);
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Já existe um cliente cadastrado com este CPF/CNPJ." };
+    }
+    return { error: "Não foi possível salvar o cliente. Tente novamente." };
+  }
+
+  revalidatePath("/clientes");
+  redirect(`/clientes?sucesso=${encodeURIComponent(`Cliente "${nomeRazaoSocial}" atualizado.`)}`);
+}
+
+export async function deleteClientRecord(formData: FormData): Promise<void> {
+  const clientId = String(formData.get("client_id") ?? "");
+  if (!clientId) redirect(`/clientes?erro=${encodeURIComponent("Cliente não encontrado.")}`);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: client } = await supabase
+    .from("clients")
+    .select("nome_razao_social")
+    .eq("id", clientId)
+    .single();
+
+  const { error } = await supabase.from("clients").delete().eq("id", clientId);
+
+  if (error) {
+    const message =
+      error.code === "23503"
+        ? "Não é possível excluir: este cliente já tem contratos gerados."
+        : "Não foi possível excluir o cliente.";
+    redirect(`/clientes?erro=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/clientes");
+  redirect(`/clientes?sucesso=${encodeURIComponent(`Cliente "${client?.nome_razao_social ?? ""}" excluído.`)}`);
+}
+
+export async function toggleClientActive(clientId: string, nextValue: boolean): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  await supabase.from("clients").update({ active: nextValue }).eq("id", clientId);
+  revalidatePath("/clientes");
 }
 
 export async function importClientsFromExcel(formData: FormData): Promise<ImportResult> {

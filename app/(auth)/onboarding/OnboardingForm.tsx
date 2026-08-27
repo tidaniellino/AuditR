@@ -7,11 +7,13 @@ import { formatCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: OnboardingState = {};
 
 export function OnboardingForm() {
   const [state, formAction] = useFormState(createOrganizationAndOwner, initialState);
+  useActionToast(state.needsEmailConfirmation ? undefined : state);
   const [cpfCnpj, setCpfCnpj] = useState("");
 
   if (state.needsEmailConfirmation) {
@@ -25,8 +27,6 @@ export function OnboardingForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      {state.error && <Alert tone="error">{state.error}</Alert>}
-
       <Field label="Nome completo" htmlFor="full_name">
         <input id="full_name" name="full_name" required autoComplete="name" className={inputClass} />
       </Field>

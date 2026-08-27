@@ -4,17 +4,16 @@ import { useFormState } from "react-dom";
 import { createClause, type ClauseFormState } from "../actions";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Alert } from "@/components/ui/Alert";
+import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: ClauseFormState = {};
 
 export function ClauseForm({ categories }: { categories: { id: string; name: string }[] }) {
   const [state, formAction] = useFormState(createClause, initialState);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
-
       <Field label="Título da cláusula" htmlFor="title">
         <input id="title" name="title" required className={inputClass} />
       </Field>

@@ -50,7 +50,7 @@ export default async function DashboardHomePage() {
           <Link
             key={stat.href}
             href={stat.href}
-            className="rounded-card border border-edge bg-white px-5 py-4 shadow-sm shadow-ink-900/5 transition-colors hover:border-brand-via"
+            className="rounded-card border border-edge bg-card px-5 py-4 shadow-sm shadow-ink-900/5 transition-colors hover:border-brand-via"
           >
             <p className="font-mono text-3xl text-ink_text">{stat.value}</p>
             <p className="mt-1 text-sm text-muted">{stat.label}</p>
@@ -59,7 +59,7 @@ export default async function DashboardHomePage() {
       </div>
 
       {clients === 0 && (
-        <div className="mt-8 rounded-card border border-dashed border-edge bg-white px-6 py-5">
+        <div className="mt-8 rounded-card border border-dashed border-edge bg-card px-6 py-5">
           <p className="text-sm font-medium text-ink_text">Primeiro passo: cadastre um cliente</p>
           <p className="mt-1 text-sm text-muted">
             Todo contrato parte de um cliente PF ou PJ. Comece pelo cadastro — para PJ, os dados são
