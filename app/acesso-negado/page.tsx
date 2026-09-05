@@ -9,7 +9,7 @@ export default function AcessoNegadoPage() {
       <p className="max-w-sm text-sm text-muted">
         Esta ação é permitida apenas para o perfil Sócio.
       </p>
-      <Link href="/" className="mt-2 text-sm font-medium text-brand-via underline underline-offset-2">
+      <Link href="/painel" className="mt-2 text-sm font-medium text-brand-via underline underline-offset-2">
         Voltar
       </Link>
     </main>

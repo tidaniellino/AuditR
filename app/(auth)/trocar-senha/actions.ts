@@ -34,5 +34,5 @@ export async function finishPasswordChange(
   await supabase.rpc("unlock_member_login", { p_member_id: user.id });
   await supabase.from("profiles").update({ must_change_password: false }).eq("id", user.id);
 
-  redirect("/");
+  redirect("/painel");
 }

@@ -3,6 +3,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isValidCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
+import { createStripeClient } from "@/lib/stripe/client";
+import { createCheckoutSessionUrl } from "@/lib/stripe/checkout";
+import { isPaidPlanKey } from "@/lib/stripe/plans";
+import { getBaseUrl } from "@/lib/url";
 
 export interface OnboardingState {
   error?: string;
@@ -59,7 +63,38 @@ export async function createOrganizationAndOwner(
   }
 
   if (signUpData.session) {
-    redirect("/");
+    // Plano escolhido na landing (?plan=profissional|corporativo), carregado
+    // pelo formulário como campo oculto — leva direto pro Checkout do Stripe
+    // do produto correspondente assim que a conta é criada.
+    const plan = String(formData.get("plan") ?? "");
+    if (isPaidPlanKey(plan)) {
+      let checkoutUrl: string | null = null;
+      try {
+        const stripe = createStripeClient();
+        const baseUrl = await getBaseUrl();
+        checkoutUrl = await createCheckoutSessionUrl({
+          supabase,
+          stripe,
+          orgId,
+          email,
+          orgName: fullName,
+          plan,
+          baseUrl,
+        });
+      } catch {
+        checkoutUrl = null;
+      }
+
+      if (checkoutUrl) redirect(checkoutUrl);
+
+      redirect(
+        `/assinatura?erro=${encodeURIComponent(
+          "Conta criada, mas não foi possível iniciar a assinatura. Tente novamente aqui."
+        )}`
+      );
+    }
+
+    redirect("/painel");
   }
 
   return { needsEmailConfirmation: true };

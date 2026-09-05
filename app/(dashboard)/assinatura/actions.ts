@@ -3,13 +3,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createStripeClient } from "@/lib/stripe/client";
+import { createCheckoutSessionUrl } from "@/lib/stripe/checkout";
+import { isPaidPlanKey } from "@/lib/stripe/plans";
 import { canManageOrg, type UserRole } from "@/lib/auth/permissions";
 import { getBaseUrl } from "@/lib/url";
-
-const PRICE_IDS: Record<"profissional" | "corporativo", string | undefined> = {
-  profissional: process.env.STRIPE_PRICE_PROFISSIONAL,
-  corporativo: process.env.STRIPE_PRICE_CORPORATIVO,
-};
 
 async function requireOrgManager() {
   const supabase = await createClient();
@@ -34,14 +31,10 @@ function failWith(message: string): never {
 }
 
 export async function createCheckoutSession(formData: FormData): Promise<void> {
-  const plan = String(formData.get("plan") ?? "") as "profissional" | "corporativo";
-  const priceId = PRICE_IDS[plan];
+  const plan = String(formData.get("plan") ?? "");
+  if (!isPaidPlanKey(plan)) failWith("Plano inválido.");
 
   const { supabase, profile } = await requireOrgManager();
-
-  if (!priceId) {
-    failWith(`Plano não configurado neste ambiente (falta STRIPE_PRICE_${plan.toUpperCase()}).`);
-  }
 
   let stripe;
   try {
@@ -52,35 +45,27 @@ export async function createCheckoutSession(formData: FormData): Promise<void> {
 
   const { data: org } = await supabase
     .from("organizations")
-    .select("stripe_customer_id, name")
+    .select("name")
     .eq("id", profile.org_id)
     .single();
 
-  let customerId = org?.stripe_customer_id ?? null;
-  if (!customerId) {
-    const customer = await stripe.customers.create({
+  let checkoutUrl: string;
+  try {
+    const baseUrl = await getBaseUrl();
+    checkoutUrl = await createCheckoutSessionUrl({
+      supabase,
+      stripe,
+      orgId: profile.org_id,
       email: profile.email,
-      name: org?.name ?? undefined,
-      metadata: { org_id: profile.org_id },
+      orgName: org?.name,
+      plan,
+      baseUrl,
     });
-    customerId = customer.id;
-    await supabase.from("organizations").update({ stripe_customer_id: customerId }).eq("id", profile.org_id);
+  } catch (error) {
+    failWith(error instanceof Error ? error.message : "Não foi possível iniciar o checkout. Tente novamente.");
   }
 
-  const baseUrl = await getBaseUrl();
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${baseUrl}/assinatura?sucesso=${encodeURIComponent("Assinatura confirmada!")}`,
-    cancel_url: `${baseUrl}/assinatura`,
-    metadata: { org_id: profile.org_id },
-    subscription_data: { metadata: { org_id: profile.org_id } },
-  });
-
-  if (!session.url) failWith("Não foi possível iniciar o checkout. Tente novamente.");
-
-  redirect(session.url);
+  redirect(checkoutUrl);
 }
 
 export async function createPortalSession(): Promise<void> {

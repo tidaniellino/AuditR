@@ -53,7 +53,10 @@ export function Sidebar({
       </button>
 
       <div>
-        <div className={`mb-8 flex items-center gap-2.5 ${collapsed ? "justify-center px-0" : "px-2"}`}>
+        <Link
+          href="/painel"
+          className={`mb-8 flex items-center gap-2.5 ${collapsed ? "justify-center px-0" : "px-2"}`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/imagemmenu.png" alt="AuditR" className="h-9 w-9 shrink-0" />
           {!collapsed && (
@@ -62,7 +65,7 @@ export function Sidebar({
               <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">Contratos</p>
             </div>
           )}
-        </div>
+        </Link>
 
         <SidebarNav role={role} collapsed={collapsed} />
       </div>

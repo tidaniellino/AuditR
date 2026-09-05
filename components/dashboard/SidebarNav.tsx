@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClientsIcon, ClausesIcon, TemplatesIcon, ContractsIcon, BuildingIcon, HelpIcon, CardIcon } from "./icons";
+import { ClientsIcon, ClausesIcon, TemplatesIcon, ContractsIcon, BuildingIcon, HelpIcon, CardIcon, HomeIcon } from "./icons";
 import { canManageOrg, type UserRole } from "@/lib/auth/permissions";
 
 const NAV_ITEMS = [
+  { href: "/painel", label: "Painel", Icon: HomeIcon },
   { href: "/clientes", label: "Clientes", Icon: ClientsIcon },
   { href: "/clausulas", label: "Cláusulas", Icon: ClausesIcon },
   { href: "/modelos", label: "Modelos", Icon: TemplatesIcon },

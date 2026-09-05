@@ -13,7 +13,7 @@ const LOCK_MESSAGE =
 export async function login(_prevState: LoginState | undefined, formData: FormData): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const redirectTo = String(formData.get("redirectTo") ?? "/");
+  const redirectTo = String(formData.get("redirectTo") ?? "/painel");
 
   const supabase = await createClient();
 

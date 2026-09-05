@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { canEditClauses, canManageOrg, type UserRole } from "@/lib/auth/permissions";
 
-// Bloqueiam acesso autenticado (redireciona pra "/" se já houver sessão).
+// Home do app pra quem já está logado — "/" virou a landing pública.
+const APP_HOME_PATH = "/painel";
+// Bloqueiam acesso autenticado (redireciona pro painel se já houver sessão).
 const AUTH_PUBLIC_PATHS = ["/login", "/onboarding", "/esqueci-senha"];
 // Sempre públicas — o assinante do contrato, o link de redefinição de senha
 // (que ainda está trocando o código pela sessão) e o webhook da Stripe (sem
@@ -39,17 +41,20 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPublic = AUTH_PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isAlwaysPublic = ALWAYS_PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  // "/" (landing com os planos) é a única rota pública comparada por igualdade
+  // exata — comparar com startsWith() bateria em toda e qualquer rota.
+  const isRoot = pathname === "/";
 
-  if (!user && !isAuthPublic && !isAlwaysPublic) {
+  if (!user && !isAuthPublic && !isAlwaysPublic && !isRoot) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
     return noStore(NextResponse.redirect(url));
   }
 
-  if (user && isAuthPublic) {
+  if (user && (isAuthPublic || isRoot)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = APP_HOME_PATH;
     return noStore(NextResponse.redirect(url));
   }
 

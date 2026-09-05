@@ -11,7 +11,7 @@ import { useActionToast } from "@/components/ui/Toast";
 
 const initialState: OnboardingState = {};
 
-export function OnboardingForm() {
+export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo" | null }) {
   const [state, formAction] = useFormState(createOrganizationAndOwner, initialState);
   useActionToast(state.needsEmailConfirmation ? undefined : state);
   const [cpfCnpj, setCpfCnpj] = useState("");
@@ -27,6 +27,8 @@ export function OnboardingForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      {plan && <input type="hidden" name="plan" value={plan} />}
+
       <Field label="Nome completo" htmlFor="full_name">
         <input id="full_name" name="full_name" required autoComplete="name" className={inputClass} />
       </Field>

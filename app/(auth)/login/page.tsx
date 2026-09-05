@@ -15,7 +15,7 @@ export default async function LoginPage({
       <h1 className="mt-2 font-display text-3xl text-ink_text">Entrar</h1>
       <p className="mb-8 mt-2 text-sm text-muted">Acesse com seu e-mail e senha.</p>
 
-      <LoginForm redirectTo={params.redirect ?? "/"} />
+      <LoginForm redirectTo={params.redirect ?? "/painel"} />
 
       <p className="mt-6 text-sm text-muted">
         Ainda não tem uma conta?{" "}
