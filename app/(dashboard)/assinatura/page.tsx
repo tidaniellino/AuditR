@@ -7,15 +7,17 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { PlanCard } from "./PlanCard";
 import { createPortalSession } from "./actions";
 
-const PLAN_FEATURES: Record<"basico" | "pro", string[]> = {
-  basico: [
-    "100 contratos gerados por mês",
+const PLAN_FEATURES: Record<"profissional" | "corporativo", string[]> = {
+  profissional: [
+    "20 contratos gerados por mês",
+    "Armazenamento ilimitado para documentos assinados",
     "Assinatura eletrônica com certificado",
     "Biblioteca de cláusulas e modelos",
     "Suporte por e-mail",
   ],
-  pro: [
-    "300 contratos gerados por mês",
+  corporativo: [
+    "150 contratos gerados por mês",
+    "Até 5 usuários administradores",
     "Assinatura eletrônica com certificado",
     "Biblioteca de cláusulas e modelos",
     "Envio por WhatsApp",
@@ -94,20 +96,20 @@ export default async function AssinaturaPage() {
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
         <PlanCard
-          plan="basico"
-          label="Básico"
-          price={PLAN_PRICES.basico}
-          features={PLAN_FEATURES.basico}
-          isCurrent={usage.isPaidActive && usage.plan === "basico"}
+          plan="profissional"
+          label="Plano Profissional"
+          price={PLAN_PRICES.profissional}
+          features={PLAN_FEATURES.profissional}
+          isCurrent={usage.isPaidActive && usage.plan === "profissional"}
           canSubscribe={canSubscribe}
         />
         <PlanCard
-          plan="pro"
-          label="Pro"
-          price={PLAN_PRICES.pro}
-          features={PLAN_FEATURES.pro}
+          plan="corporativo"
+          label="Plano Corporativo"
+          price={PLAN_PRICES.corporativo}
+          features={PLAN_FEATURES.corporativo}
           highlighted
-          isCurrent={usage.isPaidActive && usage.plan === "pro"}
+          isCurrent={usage.isPaidActive && usage.plan === "corporativo"}
           canSubscribe={canSubscribe}
         />
       </div>

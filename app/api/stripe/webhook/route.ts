@@ -3,10 +3,10 @@ import type Stripe from "stripe";
 import { createStripeClient } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-function planFromPriceId(priceId: string | undefined): "basico" | "pro" | null {
+function planFromPriceId(priceId: string | undefined): "profissional" | "corporativo" | null {
   if (!priceId) return null;
-  if (priceId === process.env.STRIPE_PRICE_BASICO) return "basico";
-  if (priceId === process.env.STRIPE_PRICE_PRO) return "pro";
+  if (priceId === process.env.STRIPE_PRICE_PROFISSIONAL) return "profissional";
+  if (priceId === process.env.STRIPE_PRICE_CORPORATIVO) return "corporativo";
   return null;
 }
 

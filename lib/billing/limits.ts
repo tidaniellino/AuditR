@@ -1,11 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
-export type PlanKey = "free" | "basico" | "pro";
+export type PlanKey = "free" | "profissional" | "corporativo";
 
-export const PLAN_LIMITS: Record<PlanKey, number> = { free: 2, basico: 100, pro: 300 };
-export const PLAN_LABELS: Record<PlanKey, string> = { free: "Gratuito", basico: "Básico", pro: "Pro" };
-export const PLAN_PRICES: Record<"basico" | "pro", number> = { basico: 29.9, pro: 59.9 };
+export const PLAN_LIMITS: Record<PlanKey, number> = { free: 2, profissional: 20, corporativo: 150 };
+export const PLAN_LABELS: Record<PlanKey, string> = {
+  free: "Gratuito",
+  profissional: "Plano Profissional",
+  corporativo: "Plano Corporativo",
+};
+export const PLAN_PRICES: Record<"profissional" | "corporativo", number> = {
+  profissional: 59.9,
+  corporativo: 179.9,
+};
 
 function isPlanActive(status: string): boolean {
   return status === "active" || status === "trialing";

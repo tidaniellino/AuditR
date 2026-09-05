@@ -11,7 +11,7 @@ export function PlanCard({
   isCurrent,
   canSubscribe,
 }: {
-  plan: "basico" | "pro";
+  plan: "profissional" | "corporativo";
   label: string;
   price: number;
   features: string[];

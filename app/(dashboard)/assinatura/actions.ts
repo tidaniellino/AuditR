@@ -6,9 +6,9 @@ import { createStripeClient } from "@/lib/stripe/client";
 import { canManageOrg, type UserRole } from "@/lib/auth/permissions";
 import { getBaseUrl } from "@/lib/url";
 
-const PRICE_IDS: Record<"basico" | "pro", string | undefined> = {
-  basico: process.env.STRIPE_PRICE_BASICO,
-  pro: process.env.STRIPE_PRICE_PRO,
+const PRICE_IDS: Record<"profissional" | "corporativo", string | undefined> = {
+  profissional: process.env.STRIPE_PRICE_PROFISSIONAL,
+  corporativo: process.env.STRIPE_PRICE_CORPORATIVO,
 };
 
 async function requireOrgManager() {
@@ -34,7 +34,7 @@ function failWith(message: string): never {
 }
 
 export async function createCheckoutSession(formData: FormData): Promise<void> {
-  const plan = String(formData.get("plan") ?? "") as "basico" | "pro";
+  const plan = String(formData.get("plan") ?? "") as "profissional" | "corporativo";
   const priceId = PRICE_IDS[plan];
 
   const { supabase, profile } = await requireOrgManager();
