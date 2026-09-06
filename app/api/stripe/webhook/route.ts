@@ -24,6 +24,7 @@ async function syncSubscription(subscription: Stripe.Subscription) {
     .update({
       plan,
       plan_status: subscription.status,
+      pending_plan: null,
       stripe_subscription_id: subscription.id,
       current_period_start: item ? new Date(item.current_period_start * 1000).toISOString() : null,
       current_period_end: item ? new Date(item.current_period_end * 1000).toISOString() : null,

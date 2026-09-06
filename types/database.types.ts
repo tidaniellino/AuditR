@@ -720,6 +720,7 @@ export type Database = {
           id: string
           name: string
           owner_claimed_at: string | null
+          pending_plan: string | null
           plan: string
           plan_status: string
           stripe_customer_id: string | null
@@ -736,6 +737,7 @@ export type Database = {
           id?: string
           name: string
           owner_claimed_at?: string | null
+          pending_plan?: string | null
           plan?: string
           plan_status?: string
           stripe_customer_id?: string | null
@@ -752,6 +754,7 @@ export type Database = {
           id?: string
           name?: string
           owner_claimed_at?: string | null
+          pending_plan?: string | null
           plan?: string
           plan_status?: string
           stripe_customer_id?: string | null
@@ -1251,7 +1254,7 @@ export type Database = {
         Returns: { blocked: boolean; locked_until: string | null }[]
       }
       create_organization: {
-        Args: { p_cnpj?: string; p_name: string }
+        Args: { p_cnpj?: string; p_name: string; p_pending_plan?: string }
         Returns: string
       }
       current_org_id: { Args: never; Returns: string }

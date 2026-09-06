@@ -26,6 +26,14 @@ export async function createOrganizationAndOwner(
   if (!isValidCpfOuCnpj(cpfCnpj)) return { error: "Informe um CPF ou CNPJ válido." };
   if (password.length < 8) return { error: "A senha deve ter pelo menos 8 caracteres." };
 
+  // Plano escolhido na landing (?plan=profissional|corporativo), carregado
+  // pelo formulário como campo oculto. Gravado na organização desde já (e não
+  // só depois do signUp) porque, se o projeto exigir confirmação de e-mail,
+  // signUp() não devolve sessão aqui e o Checkout só pode ser retomado no
+  // primeiro login (ver login/actions.ts) — o plano não pode se perder nesse meio-tempo.
+  const planParam = String(formData.get("plan") ?? "");
+  const pendingPlan = isPaidPlanKey(planParam) ? planParam : null;
+
   const supabase = await createClient();
 
   // 1) Cria a "casca" da conta (RPC pública restrita — não expõe dados
@@ -35,6 +43,7 @@ export async function createOrganizationAndOwner(
   const { data: orgId, error: orgError } = await supabase.rpc("create_organization", {
     p_name: fullName,
     p_cnpj: cpfCnpj,
+    p_pending_plan: pendingPlan ?? undefined,
   });
 
   if (orgError) {
@@ -63,11 +72,9 @@ export async function createOrganizationAndOwner(
   }
 
   if (signUpData.session) {
-    // Plano escolhido na landing (?plan=profissional|corporativo), carregado
-    // pelo formulário como campo oculto — leva direto pro Checkout do Stripe
-    // do produto correspondente assim que a conta é criada.
-    const plan = String(formData.get("plan") ?? "");
-    if (isPaidPlanKey(plan)) {
+    // Leva direto pro Checkout do Stripe do plano escolhido assim que a
+    // conta é criada (sem precisar esperar a retomada do login).
+    if (pendingPlan) {
       let checkoutUrl: string | null = null;
       try {
         const stripe = createStripeClient();
@@ -78,14 +85,17 @@ export async function createOrganizationAndOwner(
           orgId,
           email,
           orgName: fullName,
-          plan,
+          plan: pendingPlan,
           baseUrl,
         });
       } catch {
         checkoutUrl = null;
       }
 
-      if (checkoutUrl) redirect(checkoutUrl);
+      if (checkoutUrl) {
+        await supabase.from("organizations").update({ pending_plan: null }).eq("id", orgId);
+        redirect(checkoutUrl);
+      }
 
       redirect(
         `/assinatura?erro=${encodeURIComponent(
