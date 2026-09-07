@@ -4,6 +4,8 @@ import type { Database } from "@/types/database.types";
 export type PlanKey = "free" | "profissional" | "corporativo";
 
 export const PLAN_LIMITS: Record<PlanKey, number> = { free: 2, profissional: 20, corporativo: 150 };
+/** "Usuários administradores" nas páginas de planos = perfil Sócio (canManageOrg). */
+export const PLAN_ADMIN_LIMITS: Record<PlanKey, number> = { free: 1, profissional: 1, corporativo: 5 };
 export const PLAN_LABELS: Record<PlanKey, string> = {
   free: "Gratuito",
   profissional: "Plano Profissional",
@@ -62,4 +64,36 @@ export async function getContractUsage(
     isPaidActive,
     currentPeriodEnd: isPaidActive ? (org?.current_period_end ?? null) : null,
   };
+}
+
+export interface AdminUsage {
+  plan: PlanKey;
+  limit: number;
+  used: number;
+  blocked: boolean;
+}
+
+/** Quantos perfis Sócio (= "administrador" nas páginas de planos) a org já tem, contra o limite do plano vigente. */
+export async function getAdminUsage(supabase: SupabaseClient<Database>, orgId: string): Promise<AdminUsage> {
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("plan, plan_status")
+    .eq("id", orgId)
+    .single();
+
+  const plan = (org?.plan as PlanKey) ?? "free";
+  const isPaidActive = plan !== "free" && isPlanActive(org?.plan_status ?? "");
+  const effectivePlan: PlanKey = isPaidActive ? plan : "free";
+
+  const { count } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("role", "socio")
+    .eq("active", true);
+
+  const limit = PLAN_ADMIN_LIMITS[effectivePlan];
+  const used = count ?? 0;
+
+  return { plan: effectivePlan, limit, used, blocked: used >= limit };
 }

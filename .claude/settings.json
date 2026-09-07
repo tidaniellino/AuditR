@@ -1,5 +1,18 @@
 {
   "enabledPlugins": {
     "github@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(vercel env *)",
+      "Bash(vercel link*)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(vercel env *)",
+      "Bash(vercel link*)"
+    ]
   }
 }

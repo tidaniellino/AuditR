@@ -7,6 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { canManageOrg, ROLE_LABELS, type UserRole } from "@/lib/auth/permissions";
 import { isValidCPF, onlyDigits } from "@/lib/validation/cpf-cnpj";
 import { validatePassword } from "@/lib/validation/password";
+import { getAdminUsage } from "@/lib/billing/limits";
+
+const ADMIN_LIMIT_MESSAGE =
+  "Limite de usuários Sócio (administrador) do seu plano atingido. Faça upgrade em Assinatura para adicionar mais.";
 
 async function requireOrgManager() {
   const supabase = await createClient();
@@ -79,7 +83,7 @@ export async function createMember(
   _prevState: MemberFormState | undefined,
   formData: FormData
 ): Promise<MemberFormState> {
-  const { profile } = await requireOrgManager();
+  const { supabase, profile } = await requireOrgManager();
 
   const fullName = String(formData.get("full_name") ?? "").trim();
   const cpf = onlyDigits(String(formData.get("cpf") ?? ""));
@@ -93,6 +97,11 @@ export async function createMember(
   if (!email || !email.includes("@")) return { error: "Informe um e-mail válido." };
   if (!Object.keys(ROLE_LABELS).includes(role)) return { error: "Selecione um perfil válido." };
   if (password !== confirmPassword) return { error: "As senhas não coincidem." };
+
+  if (role === "socio") {
+    const adminUsage = await getAdminUsage(supabase, profile.org_id);
+    if (adminUsage.blocked) return { error: ADMIN_LIMIT_MESSAGE };
+  }
 
   const problems = validatePassword(password, { email, cpf });
   if (problems.length) return { error: problems[0] };
@@ -138,10 +147,20 @@ export async function toggleMemberActive(memberId: string, nextValue: boolean): 
   revalidatePath("/empresa");
 }
 
-export async function updateMemberRole(memberId: string, role: UserRole): Promise<void> {
-  const { supabase } = await requireOrgManager();
+export async function updateMemberRole(memberId: string, role: UserRole): Promise<{ error?: string }> {
+  const { supabase, profile } = await requireOrgManager();
+
+  if (role === "socio") {
+    const { data: member } = await supabase.from("profiles").select("role").eq("id", memberId).single();
+    if (member?.role !== "socio") {
+      const adminUsage = await getAdminUsage(supabase, profile.org_id);
+      if (adminUsage.blocked) return { error: ADMIN_LIMIT_MESSAGE };
+    }
+  }
+
   await supabase.from("profiles").update({ role }).eq("id", memberId);
   revalidatePath("/empresa");
+  return {};
 }
 
 export async function unlockMemberLogin(memberId: string): Promise<void> {

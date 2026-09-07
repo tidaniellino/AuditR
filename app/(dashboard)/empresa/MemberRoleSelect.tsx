@@ -5,6 +5,7 @@ import { updateMemberRole } from "./actions";
 import { ROLE_LABELS, SOCIO_SIGNATURE_WARNING, type UserRole } from "@/lib/auth/permissions";
 import { inputClass } from "@/components/ui/Field";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 export function MemberRoleSelect({
   memberId,
@@ -19,6 +20,17 @@ export function MemberRoleSelect({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const selectRef = useRef<HTMLSelectElement>(null);
   const confirmedRef = useRef(false);
+  const { push } = useToast();
+
+  function applyRole(nextRole: UserRole) {
+    startTransition(async () => {
+      const result = await updateMemberRole(memberId, nextRole);
+      if (result.error) {
+        push("error", result.error);
+        if (selectRef.current) selectRef.current.value = role;
+      }
+    });
+  }
 
   return (
     <>
@@ -32,7 +44,7 @@ export function MemberRoleSelect({
             setConfirmOpen(true);
             return;
           }
-          startTransition(() => updateMemberRole(memberId, nextRole));
+          applyRole(nextRole);
         }}
         title={disabled ? "Você não pode alterar seu próprio perfil" : undefined}
         className={`${inputClass} py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50`}
@@ -59,7 +71,7 @@ export function MemberRoleSelect({
         tone="warning"
         onConfirm={() => {
           confirmedRef.current = true;
-          startTransition(() => updateMemberRole(memberId, "socio"));
+          applyRole("socio");
         }}
       />
     </>
