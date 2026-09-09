@@ -12,7 +12,8 @@
     "allow": [
       "$defaults",
       "Bash(vercel env *)",
-      "Bash(vercel link*)"
+      "Bash(vercel link*)",
+      "Bash(vercel deploy*)"
     ]
   }
 }
