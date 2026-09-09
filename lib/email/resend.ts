@@ -98,6 +98,50 @@ Se você não pediu essa redefinição, ignore este e-mail — sua senha continu
   if (error) throw new Error(error.message);
 }
 
+export async function sendSignupConfirmationEmail({
+  to,
+  fullName,
+  confirmUrl,
+}: {
+  to: string;
+  fullName: string;
+  confirmUrl: string;
+}) {
+  const text = `Olá, ${fullName}!
+
+Falta só confirmar seu e-mail para começar a usar o AuditR Contratos.
+
+Clique no link abaixo para confirmar sua conta:
+${confirmUrl}
+
+Se você não criou essa conta, pode ignorar este e-mail.`;
+
+  const html = `
+    <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 480px; margin: 0 auto; color: #1C1D22;">
+      <p>Olá, <strong>${escapeHtml(fullName)}</strong>!</p>
+      <p>Falta só confirmar seu e-mail para começar a usar o AuditR Contratos.</p>
+      <p style="text-align:center; margin: 24px 0;">
+        <a href="${confirmUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
+          Confirmar minha conta
+        </a>
+      </p>
+      <p style="color:#6B6A63; font-size: 13px;">
+        Se você não criou essa conta, pode ignorar este e-mail.
+      </p>
+    </div>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "Confirme sua conta — AuditR Contratos",
+    text,
+    html,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
     switch (char) {

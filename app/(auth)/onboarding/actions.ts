@@ -1,12 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
-import { createStripeClient } from "@/lib/stripe/client";
-import { createCheckoutSessionUrl } from "@/lib/stripe/checkout";
 import { isPaidPlanKey } from "@/lib/stripe/plans";
 import { getBaseUrl } from "@/lib/url";
+import { sendSignupConfirmationEmail } from "@/lib/email/resend";
 
 export interface OnboardingState {
   error?: string;
@@ -56,55 +55,47 @@ export async function createOrganizationAndOwner(
     return { error: "Não foi possível criar a conta. Tente novamente." };
   }
 
-  // 2) Cria o usuário já vinculado à conta recém-criada. O trigger
-  //    handle_new_user() detecta que a conta ainda não tem dono e faz deste
-  //    usuário o responsável automaticamente (ver migração 20260819000004).
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  // 2) Cria o usuário já vinculado à conta recém-criada e gera o link de
+  //    confirmação via admin, sem deixar o Supabase disparar o e-mail nativo
+  //    dele — o envio é feito pelo Resend (sendSignupConfirmationEmail), com
+  //    o remetente da aplicação. O trigger handle_new_user() detecta que a
+  //    conta ainda não tem dono e faz deste usuário o responsável
+  //    automaticamente (ver migração 20260819000004). A retomada do plano
+  //    escolhido (pending_plan) acontece no primeiro login, depois da
+  //    confirmação — ver login/actions.ts.
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Cadastro não está disponível neste ambiente (falta a Service Role Key do Supabase)." };
+  }
+
+  const baseUrl = await getBaseUrl();
+
+  const { data: linkData, error: signUpError } = await admin.auth.admin.generateLink({
+    type: "signup",
     email,
     password,
     options: {
       data: { org_id: orgId, full_name: fullName, cpf: cpfCnpj.length === 11 ? cpfCnpj : null },
+      redirectTo: `${baseUrl}/login`,
     },
   });
 
-  if (signUpError) {
-    return { error: signUpError.message };
+  if (signUpError || !linkData?.properties?.action_link) {
+    return { error: signUpError?.message ?? "Não foi possível criar o usuário." };
   }
 
-  if (signUpData.session) {
-    // Leva direto pro Checkout do Stripe do plano escolhido assim que a
-    // conta é criada (sem precisar esperar a retomada do login).
-    if (pendingPlan) {
-      let checkoutUrl: string | null = null;
-      try {
-        const stripe = createStripeClient();
-        const baseUrl = await getBaseUrl();
-        checkoutUrl = await createCheckoutSessionUrl({
-          supabase,
-          stripe,
-          orgId,
-          email,
-          orgName: fullName,
-          plan: pendingPlan,
-          baseUrl,
-        });
-      } catch {
-        checkoutUrl = null;
-      }
-
-      if (checkoutUrl) {
-        await supabase.from("organizations").update({ pending_plan: null }).eq("id", orgId);
-        redirect(checkoutUrl);
-      }
-
-      redirect(
-        `/assinatura?erro=${encodeURIComponent(
-          "Conta criada, mas não foi possível iniciar a assinatura. Tente novamente aqui."
-        )}`
-      );
-    }
-
-    redirect("/painel");
+  try {
+    await sendSignupConfirmationEmail({
+      to: email,
+      fullName,
+      confirmUrl: linkData.properties.action_link,
+    });
+  } catch {
+    return {
+      error: "Conta criada, mas não foi possível enviar o e-mail de confirmação. Tente fazer login mais tarde.",
+    };
   }
 
   return { needsEmailConfirmation: true };
