@@ -6,11 +6,11 @@ import { canEditClauses, canManageOrg, type UserRole } from "@/lib/auth/permissi
 const APP_HOME_PATH = "/painel";
 // Bloqueiam acesso autenticado (redireciona pro painel se já houver sessão).
 const AUTH_PUBLIC_PATHS = ["/login", "/onboarding", "/esqueci-senha"];
-// Sempre públicas — o assinante do contrato, o link de redefinição de senha
-// (que ainda está trocando o código pela sessão) e o webhook da Stripe (sem
-// cookie/sessão, autenticado pela assinatura HMAC do próprio payload) nunca
-// têm sessão prévia.
-const ALWAYS_PUBLIC_PATHS = ["/assinar", "/redefinir-senha", "/api/stripe/webhook"];
+// Sempre públicas — o assinante do contrato, os links de confirmação de
+// cadastro e redefinição de senha (que ainda estão trocando o token_hash
+// pela sessão) e o webhook da Stripe (sem cookie/sessão, autenticado pela
+// assinatura HMAC do próprio payload) nunca têm sessão prévia.
+const ALWAYS_PUBLIC_PATHS = ["/assinar", "/confirmar-conta", "/redefinir-senha", "/api/stripe/webhook"];
 // Único destino permitido enquanto a troca de senha obrigatória está pendente.
 const PASSWORD_CHANGE_PATH = "/trocar-senha";
 
