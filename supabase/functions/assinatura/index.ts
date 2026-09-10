@@ -82,6 +82,17 @@ export async function sha256Hex(input: string | Uint8Array): Promise<string> {
     .join("");
 }
 
+/** Comparação em tempo constante — evita vazar, pelo tempo de resposta, em
+ *  qual posição o hex do código informado diverge do hash esperado. */
+export function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
@@ -247,7 +258,7 @@ Deno.serve(async (req) => {
     }
 
     const incomingHash = await sha256Hex(code);
-    if (incomingHash !== signatureCode.code_hash) {
+    if (!timingSafeEqualHex(incomingHash, signatureCode.code_hash)) {
       await supabase
         .from("signature_codes")
         .update({ attempts: signatureCode.attempts + 1 })

@@ -10,6 +10,14 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Mesma config de lib/supabase/server.ts — precisa bater, senão o
+      // middleware e o client de Server Component/Action reescrevem o
+      // cookie com atributos diferentes a cada request.
+      cookieOptions: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();

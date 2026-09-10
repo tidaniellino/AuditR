@@ -156,6 +156,14 @@ export async function addClauseVersion(
   if (!content) return { error: "O conteúdo da nova versão é obrigatório." };
   if (!changeReason) return { error: "Descreva o motivo da alteração." };
 
+  const { data: clause } = await supabase
+    .from("clauses")
+    .select("id")
+    .eq("id", clauseId)
+    .eq("org_id", profile.org_id)
+    .single();
+  if (!clause) return { error: "Cláusula não encontrada." };
+
   const { error } = await supabase.from("clause_versions").insert({
     org_id: profile.org_id,
     clause_id: clauseId,
@@ -182,6 +190,13 @@ export async function addIncompatibility(formData: FormData) {
   if (!clauseId || !otherClauseId || !reason || clauseId === otherClauseId) {
     return;
   }
+
+  const { count } = await supabase
+    .from("clauses")
+    .select("id", { count: "exact", head: true })
+    .in("id", [clauseId, otherClauseId])
+    .eq("org_id", profile.org_id);
+  if (count !== 2) return;
 
   await supabase.from("clause_incompatibilities").insert({
     org_id: profile.org_id,

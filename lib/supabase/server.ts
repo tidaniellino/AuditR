@@ -10,6 +10,14 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // httpOnly: o cookie de sessão nunca é lido via JS no browser neste app
+      // (lib/supabase/client.ts não é importado em lugar nenhum) — bloquear
+      // acesso via document.cookie contém o estrago de um eventual XSS futuro.
+      cookieOptions: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();
