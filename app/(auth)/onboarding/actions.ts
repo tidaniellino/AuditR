@@ -78,11 +78,10 @@ export async function createOrganizationAndOwner(
     password,
     options: {
       data: { org_id: orgId, full_name: fullName, cpf: cpfCnpj.length === 11 ? cpfCnpj : null },
-      redirectTo: `${baseUrl}/login`,
     },
   });
 
-  if (signUpError || !linkData?.properties?.action_link) {
+  if (signUpError || !linkData?.properties?.hashed_token) {
     return { error: signUpError?.message ?? "Não foi possível criar o usuário." };
   }
 
@@ -90,7 +89,7 @@ export async function createOrganizationAndOwner(
     await sendSignupConfirmationEmail({
       to: email,
       fullName,
-      confirmUrl: linkData.properties.action_link,
+      confirmUrl: `${baseUrl}/confirmar-conta?token_hash=${linkData.properties.hashed_token}`,
     });
   } catch {
     return {

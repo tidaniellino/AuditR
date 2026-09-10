@@ -2,10 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createStripeClient } from "@/lib/stripe/client";
-import { createCheckoutSessionUrl } from "@/lib/stripe/checkout";
-import { isPaidPlanKey } from "@/lib/stripe/plans";
-import { canManageOrg, type UserRole } from "@/lib/auth/permissions";
+import { resumePendingCheckoutUrl } from "@/lib/stripe/resume-checkout";
 import { getBaseUrl } from "@/lib/url";
 
 export interface LoginState {
@@ -42,46 +39,16 @@ export async function login(_prevState: LoginState | undefined, formData: FormDa
 
   // Retoma o Checkout da Stripe do plano escolhido no cadastro quando ele não
   // pôde ser aberto na hora (projeto exige confirmação de e-mail antes de dar
-  // sessão — ver onboarding/actions.ts). Só se aplica ao Sócio, dono da conta,
-  // e só enquanto a organização ainda não tiver uma assinatura paga.
+  // sessão — ver onboarding/actions.ts e confirmar-conta/route.ts).
   if (signInData.user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("org_id, role")
-      .eq("id", signInData.user.id)
-      .single();
-
-    if (profile && canManageOrg(profile.role as UserRole)) {
-      const { data: org } = await supabase
-        .from("organizations")
-        .select("name, plan, pending_plan")
-        .eq("id", profile.org_id)
-        .single();
-
-      if (org?.plan === "free" && org.pending_plan && isPaidPlanKey(org.pending_plan)) {
-        let checkoutUrl: string | null = null;
-        try {
-          const stripe = createStripeClient();
-          const baseUrl = await getBaseUrl();
-          checkoutUrl = await createCheckoutSessionUrl({
-            supabase,
-            stripe,
-            orgId: profile.org_id,
-            email,
-            orgName: org.name,
-            plan: org.pending_plan,
-            baseUrl,
-          });
-        } catch {
-          checkoutUrl = null;
-        }
-
-        if (checkoutUrl) {
-          await supabase.from("organizations").update({ pending_plan: null }).eq("id", profile.org_id);
-          redirect(checkoutUrl);
-        }
-      }
-    }
+    const baseUrl = await getBaseUrl();
+    const checkoutUrl = await resumePendingCheckoutUrl({
+      supabase,
+      userId: signInData.user.id,
+      email,
+      baseUrl,
+    });
+    if (checkoutUrl) redirect(checkoutUrl);
   }
 
   redirect(redirectTo);

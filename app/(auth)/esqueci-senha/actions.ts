@@ -18,14 +18,13 @@ export async function requestPasswordReset(
     try {
       const admin = createAdminClient();
       const baseUrl = await getBaseUrl();
-      const { data, error } = await admin.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: { redirectTo: `${baseUrl}/redefinir-senha` },
-      });
+      const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email });
 
-      if (!error && data?.properties?.action_link) {
-        await sendPasswordResetEmail({ to: email, resetUrl: data.properties.action_link });
+      if (!error && data?.properties?.hashed_token) {
+        await sendPasswordResetEmail({
+          to: email,
+          resetUrl: `${baseUrl}/redefinir-senha?token_hash=${data.properties.hashed_token}`,
+        });
       }
     } catch {
       // Falha silenciosa de propósito: a resposta nunca revela se o e-mail existe ou se o envio falhou.
