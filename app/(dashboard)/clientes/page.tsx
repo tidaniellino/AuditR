@@ -5,16 +5,29 @@ import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
 import { EditClientModal } from "./EditClientModal";
 import { DeleteClientButton } from "./DeleteClientButton";
 import { ClientActiveToggle } from "./ClientActiveToggle";
+import { QuickSendContractButton } from "./QuickSendContractButton";
 
 export default async function ClientesPage() {
   const supabase = await createClient();
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select(
-      "id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, email, telefone, endereco, active, created_at"
-    )
-    .order("created_at", { ascending: false });
+  const [{ data: clients }, { data: templates }, { data: clauses }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select(
+        "id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, email, telefone, endereco, active, created_at"
+      )
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("contract_templates")
+      .select("id, name, contract_type")
+      .eq("active", true)
+      .order("name", { ascending: true }),
+    supabase
+      .from("clauses")
+      .select("id, title")
+      .eq("status", "approved")
+      .order("title", { ascending: true }),
+  ]);
 
   return (
     <div>
@@ -79,6 +92,18 @@ export default async function ClientesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
+                      <QuickSendContractButton
+                        client={{
+                          id: c.id,
+                          tipo_pessoa: c.tipo_pessoa,
+                          cpf_cnpj: c.cpf_cnpj,
+                          nome_razao_social: c.nome_razao_social,
+                          email: c.email,
+                          telefone: c.telefone,
+                        }}
+                        templates={templates ?? []}
+                        clauses={clauses ?? []}
+                      />
                       <EditClientModal
                         client={{
                           id: c.id,

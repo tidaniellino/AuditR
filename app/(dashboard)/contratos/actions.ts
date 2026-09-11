@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { formatCpfCnpj, isValidCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
+import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { mergeDocxTemplate, extractDocxParagraphs } from "@/lib/documents/docx";
 import { buildContractPdf, type ContractPartner } from "@/lib/documents/pdf";
 import { generateSigningCode, hashSigningCode, SIGNING_CODE_TTL_HOURS } from "@/lib/signing/codes";
@@ -350,89 +350,36 @@ async function generateContractFromUpload({
   return { contractId: contract.id };
 }
 
-/** Acha um cliente já cadastrado com esse CPF/CNPJ na organização, ou cria um
- *  novo mínimo (nome, e-mail, WhatsApp, CPF/CNPJ) — usado pelo Envio Rápido,
- *  que não exige que o cliente já esteja cadastrado. */
-async function findOrCreateClientByDocument({
-  supabase,
-  orgId,
-  userId,
-  cpfCnpj,
-  nome,
-  email,
-  telefone,
-}: {
-  supabase: SupabaseClient;
-  orgId: string;
-  userId: string;
-  cpfCnpj: string;
-  nome: string;
-  email: string;
-  telefone: string;
-}): Promise<{ clientId: string; isNewClient: boolean } | { error: string }> {
-  const { data: existing } = await supabase
-    .from("clients")
-    .select("id")
-    .eq("org_id", orgId)
-    .eq("cpf_cnpj", cpfCnpj)
-    .maybeSingle();
-
-  if (existing) return { clientId: existing.id, isNewClient: false };
-
-  const tipoPessoa = cpfCnpj.length === 11 ? "PF" : "PJ";
-  const { data: created, error } = await supabase
-    .from("clients")
-    .insert({
-      org_id: orgId,
-      tipo_pessoa: tipoPessoa,
-      cpf_cnpj: cpfCnpj,
-      nome_razao_social: nome,
-      email: email || null,
-      telefone: telefone || null,
-      created_by: userId,
-    })
-    .select("id")
-    .single();
-
-  if (error || !created) return { error: "Não foi possível registrar o cliente." };
-  return { clientId: created.id, isNewClient: true };
-}
-
 export interface QuickSendResult {
   error?: string;
   success?: string;
-  isNewClient?: boolean;
-  clientId?: string;
 }
 
-export async function quickSendContract(
+/** Envio rápido a partir da grade de clientes: o cliente já existe (veio da
+ *  linha clicada), então só resta escolher o contrato (modelo ou upload) e
+ *  mandar direto para assinatura — reaproveita a mesma pipeline de
+ *  geração/envio do fluxo tradicional. */
+export async function quickSendContractForClient(
   _prevState: QuickSendResult | undefined,
   formData: FormData
 ): Promise<QuickSendResult> {
   const { supabase, user, profile } = await requireUser();
 
+  const clientId = String(formData.get("client_id") ?? "");
+  if (!clientId) return { error: "Cliente não encontrado." };
+
+  // Confere explicitamente que o cliente pertence à org do usuário — não
+  // depende só do RLS de `clients`, já que client_id chega direto do form.
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("org_id", profile.org_id)
+    .maybeSingle();
+  if (!client) return { error: "Cliente não encontrado." };
+
   const mode = String(formData.get("mode") ?? "");
-  const nome = String(formData.get("nome") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const telefone = String(formData.get("telefone") ?? "").trim();
-  const cpfCnpj = onlyDigits(String(formData.get("cpf_cnpj") ?? ""));
   const titleInput = String(formData.get("title") ?? "").trim();
-
-  if (!nome) return { error: "Informe o nome do contratante." };
-  if (!email) return { error: "Informe o e-mail do contratante." };
-  if (!isValidCpfOuCnpj(cpfCnpj)) return { error: "Informe um CPF ou CNPJ válido." };
-
-  const clientResult = await findOrCreateClientByDocument({
-    supabase,
-    orgId: profile.org_id,
-    userId: user.id,
-    cpfCnpj,
-    nome,
-    email,
-    telefone,
-  });
-  if ("error" in clientResult) return clientResult;
-  const { clientId, isNewClient } = clientResult;
 
   let genResult: { contractId: string } | { error: string };
 
@@ -479,12 +426,9 @@ export async function quickSendContract(
   if (sendResult.error) return { error: sendResult.error };
 
   revalidatePath("/contratos");
+  revalidatePath("/clientes");
 
-  return {
-    success: sendResult.success,
-    isNewClient,
-    clientId: isNewClient ? clientId : undefined,
-  };
+  return { success: sendResult.success };
 }
 
 export interface SendResult {
