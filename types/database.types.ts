@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -341,6 +341,54 @@ export type Database = {
           },
         ]
       }
+      company_partners: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          org_id: string
+          role_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          org_id: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          org_id?: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_partners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_partners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_answers: {
         Row: {
           contract_id: string
@@ -580,7 +628,7 @@ export type Database = {
           signer_ip: string | null
           signer_user_agent: string | null
           status: Database["public"]["Enums"]["document_status"]
-          template_id: string
+          template_id: string | null
           title: string
           updated_at: string
           valor: number | null
@@ -606,7 +654,7 @@ export type Database = {
           signer_ip?: string | null
           signer_user_agent?: string | null
           status?: Database["public"]["Enums"]["document_status"]
-          template_id: string
+          template_id?: string | null
           title: string
           updated_at?: string
           valor?: number | null
@@ -632,7 +680,7 @@ export type Database = {
           signer_ip?: string | null
           signer_user_agent?: string | null
           status?: Database["public"]["Enums"]["document_status"]
-          template_id?: string
+          template_id?: string | null
           title?: string
           updated_at?: string
           valor?: number | null
@@ -709,6 +757,57 @@ export type Database = {
           },
         ]
       }
+      org_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at: string
+          id?: string
+          org_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           cnpj: string | null
@@ -763,91 +862,6 @@ export type Database = {
         }
         Relationships: []
       }
-      company_partners: {
-        Row: {
-          cpf: string | null
-          created_at: string
-          created_by: string | null
-          full_name: string
-          id: string
-          org_id: string
-          role_title: string | null
-          updated_at: string
-        }
-        Insert: {
-          cpf?: string | null
-          created_at?: string
-          created_by?: string | null
-          full_name: string
-          id?: string
-          org_id: string
-          role_title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          cpf?: string | null
-          created_at?: string
-          created_by?: string | null
-          full_name?: string
-          id?: string
-          org_id?: string
-          role_title?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_partners_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      org_invites: {
-        Row: {
-          created_at: string
-          created_by: string
-          email: string
-          expires_at: string
-          id: string
-          org_id: string
-          role: Database["public"]["Enums"]["user_role"]
-          token: string
-          used_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          email: string
-          expires_at: string
-          id?: string
-          org_id: string
-          role: Database["public"]["Enums"]["user_role"]
-          token: string
-          used_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          org_id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          token?: string
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "org_invites_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           active: boolean
@@ -900,60 +914,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      signature_codes: {
-        Row: {
-          attempts: number
-          code_hash: string
-          contract_id: string
-          created_at: string
-          expires_at: string
-          id: string
-          org_id: string
-          signer_email: string
-          signer_name: string
-          used_at: string | null
-        }
-        Insert: {
-          attempts?: number
-          code_hash: string
-          contract_id: string
-          created_at?: string
-          expires_at: string
-          id?: string
-          org_id: string
-          signer_email: string
-          signer_name: string
-          used_at?: string | null
-        }
-        Update: {
-          attempts?: number
-          code_hash?: string
-          contract_id?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          org_id?: string
-          signer_email?: string
-          signer_name?: string
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "signature_codes_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "signature_codes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1020,6 +980,60 @@ export type Database = {
           },
           {
             foreignKeyName: "signature_audit_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signature_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          contract_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          org_id: string
+          signer_email: string
+          signer_name: string
+          used_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          contract_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          org_id: string
+          signer_email: string
+          signer_name: string
+          used_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          contract_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          org_id?: string
+          signer_email?: string
+          signer_name?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_codes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_codes_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1251,7 +1265,10 @@ export type Database = {
       can_edit_clauses: { Args: never; Returns: boolean }
       check_login_lockout: {
         Args: { p_email: string }
-        Returns: { blocked: boolean; locked_until: string | null }[]
+        Returns: {
+          blocked: boolean
+          locked_until: string
+        }[]
       }
       create_organization: {
         Args: { p_cnpj?: string; p_name: string; p_pending_plan?: string }
@@ -1262,20 +1279,12 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      register_login_result: {
-        Args: { p_email: string; p_success: boolean }
-        Returns: undefined
-      }
-      unlock_member_login: {
-        Args: { p_member_id: string }
-        Returns: undefined
-      }
       get_invite_info: {
         Args: { p_token: string }
         Returns: {
+          email: string
           org_id: string
           org_name: string
-          email: string
           role: Database["public"]["Enums"]["user_role"]
           valid: boolean
         }[]
@@ -1284,6 +1293,11 @@ export type Database = {
         Args: { p_clause_id: string }
         Returns: string
       }
+      register_login_result: {
+        Args: { p_email: string; p_success: boolean }
+        Returns: undefined
+      }
+      unlock_member_login: { Args: { p_member_id: string }; Returns: undefined }
       validate_contract_for_export: {
         Args: { p_contract_id: string }
         Returns: {
@@ -1310,8 +1324,8 @@ export type Database = {
         | "advogado_junior"
         | "contador_senior"
         | "contador_junior"
-        | "funcionario"
         | "admin"
+        | "funcionario"
       whatsapp_status: "pending" | "sent" | "delivered" | "read" | "failed"
     }
     CompositeTypes: {
@@ -1328,12 +1342,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1357,11 +1371,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1382,11 +1396,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1407,11 +1421,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1424,11 +1438,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1457,8 +1471,8 @@ export const Constants = {
         "advogado_junior",
         "contador_senior",
         "contador_junior",
-        "funcionario",
         "admin",
+        "funcionario",
       ],
       whatsapp_status: ["pending", "sent", "delivered", "read", "failed"],
     },
