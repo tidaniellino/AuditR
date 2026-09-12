@@ -1,15 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
-export type PlanKey = "free" | "profissional" | "corporativo";
+// "interno" não é um plano vendável — nunca aparece em checkout/preços
+// (que usam PaidPlanKey, só "profissional"/"corporativo", em lib/stripe/plans.ts).
+// É só um marcador manual para contas de teste do próprio time (ver
+// scripts/grant-unlimited-plan.sql), sem limite de contratos nem de sócios.
+export type PlanKey = "free" | "profissional" | "corporativo" | "interno";
 
-export const PLAN_LIMITS: Record<PlanKey, number> = { free: 2, profissional: 20, corporativo: 150 };
+export const PLAN_LIMITS: Record<PlanKey, number> = {
+  free: 2,
+  profissional: 20,
+  corporativo: 150,
+  interno: Infinity,
+};
 /** "Usuários administradores" nas páginas de planos = perfil Sócio (canManageOrg). */
-export const PLAN_ADMIN_LIMITS: Record<PlanKey, number> = { free: 1, profissional: 1, corporativo: 5 };
+export const PLAN_ADMIN_LIMITS: Record<PlanKey, number> = {
+  free: 1,
+  profissional: 1,
+  corporativo: 5,
+  interno: Infinity,
+};
 export const PLAN_LABELS: Record<PlanKey, string> = {
   free: "Gratuito",
   profissional: "Plano Profissional",
   corporativo: "Plano Corporativo",
+  interno: "Uso interno (ilimitado)",
 };
 export const PLAN_PRICES: Record<"profissional" | "corporativo", number> = {
   profissional: 59.9,
