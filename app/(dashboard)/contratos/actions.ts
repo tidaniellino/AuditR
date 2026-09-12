@@ -158,7 +158,7 @@ async function generateContract({
       .order("created_at", { ascending: true }),
     supabase
       .from("profiles")
-      .select("id, full_name, cpf")
+      .select("id, full_name, cpf, oab_crc")
       .eq("org_id", profile.org_id)
       .eq("role", "socio")
       .eq("active", true)
@@ -353,6 +353,78 @@ async function generateContract({
     }
   };
 
+  // Atributos "de contrato" — não são dado cadastral de nenhuma parte, mas
+  // já têm uma fonte disponível na própria geração (valor digitado no
+  // formulário, data de hoje, endereço de Minha Empresa, registro
+  // profissional do sócio) — resolvidos aqui pra não deixar em branco à toa
+  // um campo "específico" que na real já tem de onde vir.
+  const MESES_PT_EXTENSO = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+  ];
+  const now = new Date();
+
+  function parseCrc(raw: string | null): { uf: string | null; numero: string | null } {
+    if (!raw) return { uf: null, numero: null };
+    const cleaned = raw.trim();
+    let m = cleaned.match(/([A-Za-z]{2})\D*([\d.\-/]+)/);
+    if (m) return { uf: m[1].toUpperCase(), numero: m[2].replace(/[^\d.]/g, "") };
+    m = cleaned.match(/([\d.\-/]+)\D*([A-Za-z]{2})/);
+    if (m) return { uf: m[2].toUpperCase(), numero: m[1].replace(/[^\d.]/g, "") };
+    return { uf: null, numero: null };
+  }
+  const crc = parseCrc(defaultSigner?.oab_crc ?? null);
+
+  const contractAttributeValue = (attributeKey: string | null): string | null => {
+    switch (attributeKey) {
+      case "contrato_valor":
+        return valor != null ? formatBRL(valor) : null;
+      case "contrato_valor_sem_simbolo":
+        return valor != null ? formatBRL(valor).replace(/^R\$\s*/i, "") : null;
+      case "contrato_dia":
+        return String(now.getDate());
+      case "contrato_mes_extenso":
+        return MESES_PT_EXTENSO[now.getMonth()];
+      case "contrato_ano":
+        return String(now.getFullYear());
+      case "contrato_cidade":
+        return orgEndereco?.municipio || null;
+      case "contrato_estado":
+        return orgEndereco?.uf || null;
+      case "crc_uf":
+        return crc.uf;
+      case "crc_numero":
+        return crc.numero;
+      default:
+        return null;
+    }
+  };
+  // Estas chaves resolvem sempre pelo mesmo caminho (data/valor/CRC),
+  // mesmo quando a ocorrência caiu dentro do bloco de qualificação de uma
+  // parte (ex.: o CRC deste modelo vem logo depois de "CONTRATADA:", então
+  // sua ocorrência tem role="contratada", não "especifico").
+  const CONTRACT_LEVEL_ATTRIBUTE_KEYS = new Set([
+    "contrato_valor",
+    "contrato_valor_sem_simbolo",
+    "contrato_dia",
+    "contrato_mes_extenso",
+    "contrato_ano",
+    "contrato_cidade",
+    "contrato_estado",
+    "crc_uf",
+    "crc_numero",
+  ]);
+
   // Modelo ainda nunca analisado (ex.: cadastrado antes desta funcionalidade
   // existir, ou o botão "Reanalisar" nunca foi usado) — analisa agora, na
   // hora de gerar, em vez de simplesmente pular o preenchimento em silêncio,
@@ -391,6 +463,11 @@ async function generateContract({
 
   const bracketValuesByOccurrence = new Map<number, string>();
   for (const occurrence of occurrencesForFill) {
+    if (occurrence.attribute_key && CONTRACT_LEVEL_ATTRIBUTE_KEYS.has(occurrence.attribute_key)) {
+      const value = contractAttributeValue(occurrence.attribute_key);
+      if (value !== null) bracketValuesByOccurrence.set(occurrence.occurrence_index, value);
+      continue;
+    }
     if (occurrence.role === "especifico") continue;
     const party = occurrence.role === "contratante" ? contratanteParty : contratadaParty;
     const value = partyAttributeValue(party, occurrence.attribute_key);

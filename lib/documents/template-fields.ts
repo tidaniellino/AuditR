@@ -40,6 +40,22 @@ export const PARTY_ATTRIBUTE_LABELS: Record<string, string> = {
   representante_rg: "RG do representante legal",
 };
 
+/** Campos "específicos do contrato" que, mesmo sem ligação com o cadastro de
+ *  nenhuma parte, têm uma fonte de dado já disponível na geração do
+ *  contrato (valor acordado, data de hoje, endereço de Minha Empresa,
+ *  registro profissional do sócio) — resolvidos em generateContract. */
+export const CONTRACT_ATTRIBUTE_LABELS: Record<string, string> = {
+  contrato_valor: "Valor do contrato (com R$)",
+  contrato_valor_sem_simbolo: "Valor do contrato (sem R$ — quando o modelo já escreve R$ antes)",
+  contrato_dia: "Dia da assinatura (data de hoje)",
+  contrato_mes_extenso: "Mês da assinatura por extenso (data de hoje)",
+  contrato_ano: "Ano da assinatura (data de hoje)",
+  contrato_cidade: "Cidade da assinatura (endereço de Minha Empresa)",
+  contrato_estado: "Estado (UF) da assinatura (endereço de Minha Empresa)",
+  crc_uf: "UF do registro profissional (CRC/OAB do sócio)",
+  crc_numero: "Número do registro profissional (CRC/OAB do sócio)",
+};
+
 const BRACKET_RE = /\[([^[\]]+)\]/g;
 // Exige que o rótulo apareça no INÍCIO do parágrafo (com ou sem ":" depois)
 // — cobre tanto o bloco de qualificação ("CONTRATANTE: [RAZÃO SOCIAL]...")
@@ -147,7 +163,20 @@ export function analyzeTemplateFields(paragraphs: string[]): TemplateFieldOccurr
     let attributeKey: string | null = null;
     let confidence: TemplateFieldConfidence = "high";
 
-    if (role !== "especifico") {
+    // Registro profissional (CRC/OAB) é sempre de Minha Empresa/do sócio,
+    // mesmo quando o campo cai dentro do parágrafo de qualificação da parte
+    // (como neste modelo, onde o CRC vem logo depois de "CONTRATADA:") —
+    // checado antes da classificação por papel, então tem prioridade.
+    const isCrcContext = /\bCRC\b/.test(event.paragraphText.toUpperCase());
+    const trimmedText = event.rawText.trim();
+
+    if (isCrcContext && /^UF$/i.test(trimmedText)) {
+      attributeKey = "crc_uf";
+      confidence = "low";
+    } else if (isCrcContext && /^[\d.]+$/.test(trimmedText)) {
+      attributeKey = "crc_numero";
+      confidence = "low";
+    } else if (role !== "especifico") {
       const guess = guessAttribute(event.rawText);
       const mentionsRepresentante = /REPRESENTANTE/i.test(event.paragraphText);
       const partyIsPJ = role === "contratante" ? contratanteIsPJ : contratadaIsPJ;
@@ -173,6 +202,19 @@ export function analyzeTemplateFields(paragraphs: string[]): TemplateFieldOccurr
       // indicar de qual parte) — mesmo com um palpite, sinaliza baixa
       // confiança pra revisão manual, como pedido.
       if (/^NOME$/i.test(event.rawText.trim())) confidence = "low";
+    } else {
+      // "Específico do contrato" nem sempre quer dizer "sem fonte de dado
+      // nenhuma" — valor já é coletado em outro lugar do sistema (o
+      // formulário de geração), só não tem relação com o cadastro do
+      // CLIENTE ou de MINHA EMPRESA como parte contratual.
+      if (!/POR EXTENSO/.test(trimmedText.toUpperCase()) && /VALOR|PRE[ÇC]O|HONOR[ÁA]RIOS/.test(trimmedText.toUpperCase())) {
+        // O modelo já costuma escrever "R$" antes do colchete ("no valor de
+        // R$ [VALOR]") — nesse caso o valor é preenchido sem o símbolo, pra
+        // não duplicar ("R$ R$ 1.500,00").
+        const precedingText = event.paragraphText.slice(0, event.pos);
+        attributeKey = /R\$\s*$/i.test(precedingText) ? "contrato_valor_sem_simbolo" : "contrato_valor";
+        confidence = "low";
+      }
     }
 
     occurrences.push({
@@ -186,5 +228,68 @@ export function analyzeTemplateFields(paragraphs: string[]): TemplateFieldOccurr
     });
   }
 
+  detectClosingDatePattern(occurrences);
+
   return occurrences;
+}
+
+/** Reconhece o fechamento clássico de contrato brasileiro — "[CIDADE],
+ *  [ESTADO], [DIA] de [MÊS] de [ANO]." — pela SEQUÊNCIA exata dos três
+ *  campos "DIA"/"MÊS"/"ANO" no mesmo parágrafo, e liga à data de hoje.
+ *  Importante: "[DIA]" sozinho, sem "[MÊS]" e "[ANO]" logo depois (ex.: "até
+ *  o dia [DIA] de cada mês", que é o vencimento do pagamento, não a data do
+ *  contrato), continua como campo específico sem valor — não faz sentido
+ *  usar o dia de hoje como vencimento de pagamento por coincidência de
+ *  nome do campo. CIDADE/ESTADO logo antes do trio (mesmo parágrafo) são
+ *  tratados como o local de assinatura; um "[CIDADE/UF]" isolado em outro
+ *  lugar do documento (tipicamente o foro, cláusula de jurisdição) não é
+ *  tocado — é uma escolha jurídica deliberada, não um dado administrativo. */
+function detectClosingDatePattern(occurrences: TemplateFieldOccurrence[]): void {
+  for (let i = 0; i < occurrences.length; i++) {
+    const dia = occurrences[i];
+    if (dia.role !== "especifico" || !/^DIA$/i.test(dia.rawText.trim())) continue;
+
+    const mes = occurrences[i + 1];
+    const ano = occurrences[i + 2];
+    if (
+      !mes ||
+      !ano ||
+      mes.paragraphIndex !== dia.paragraphIndex ||
+      ano.paragraphIndex !== dia.paragraphIndex ||
+      mes.role !== "especifico" ||
+      ano.role !== "especifico" ||
+      !/^M[ÊE]S$/i.test(mes.rawText.trim()) ||
+      !/^ANO$/i.test(ano.rawText.trim())
+    ) {
+      continue;
+    }
+
+    dia.attributeKey = "contrato_dia";
+    dia.confidence = "high";
+    mes.attributeKey = "contrato_mes_extenso";
+    mes.confidence = "high";
+    ano.attributeKey = "contrato_ano";
+    ano.confidence = "high";
+
+    const estado = occurrences[i - 1];
+    const cidade = occurrences[i - 2];
+    if (
+      estado &&
+      estado.paragraphIndex === dia.paragraphIndex &&
+      estado.role === "especifico" &&
+      /^(ESTADO|UF)$/i.test(estado.rawText.trim())
+    ) {
+      estado.attributeKey = "contrato_estado";
+      estado.confidence = "high";
+    }
+    if (
+      cidade &&
+      cidade.paragraphIndex === dia.paragraphIndex &&
+      cidade.role === "especifico" &&
+      /^CIDADE$/i.test(cidade.rawText.trim())
+    ) {
+      cidade.attributeKey = "contrato_cidade";
+      cidade.confidence = "high";
+    }
+  }
 }

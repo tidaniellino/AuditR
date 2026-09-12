@@ -6,7 +6,11 @@ import {
   saveTemplateFieldClassification,
   type FieldClassificationInput,
 } from "../../actions";
-import { PARTY_ATTRIBUTE_LABELS, type TemplateFieldRole } from "@/lib/documents/template-fields";
+import {
+  PARTY_ATTRIBUTE_LABELS,
+  CONTRACT_ATTRIBUTE_LABELS,
+  type TemplateFieldRole,
+} from "@/lib/documents/template-fields";
 import { useToast } from "@/components/ui/Toast";
 
 export interface TemplateFieldOccurrenceRow {
@@ -43,7 +47,10 @@ export function TemplateFieldsReview({
   }
 
   function handleRoleChange(id: string, role: TemplateFieldRole) {
-    updateRow(id, { role, attributeKey: role === "especifico" ? null : rows.find((r) => r.id === id)?.attributeKey ?? null });
+    // Muda o papel sempre limpa o atributo — as opções são diferentes por
+    // papel (cadastro da parte vs. valor/data/CRC), então um atributo
+    // escolhido antes não faz mais sentido depois da troca.
+    updateRow(id, { role, attributeKey: null });
   }
 
   function handleSave() {
@@ -51,7 +58,7 @@ export function TemplateFieldsReview({
       const payload: FieldClassificationInput[] = rows.map((r) => ({
         id: r.id,
         role: r.role,
-        attributeKey: r.role === "especifico" ? null : r.attributeKey,
+        attributeKey: r.attributeKey,
       }));
       const result = await saveTemplateFieldClassification(templateId, payload);
       push(result.error ? "error" : "success", result.error ?? result.success ?? "Salvo.");
@@ -141,22 +148,22 @@ export function TemplateFieldsReview({
                       </select>
                     </td>
                     <td className="px-3 py-2">
-                      {row.role === "especifico" ? (
-                        <span className="text-xs text-muted">— preenchimento manual —</span>
-                      ) : (
-                        <select
-                          value={row.attributeKey ?? ""}
-                          onChange={(e) => updateRow(row.id, { attributeKey: e.target.value || null })}
-                          className="rounded-card border border-edge bg-mist px-2 py-1.5 text-xs text-ink_text focus:border-brand-via focus:outline-none"
-                        >
-                          <option value="">— Não mapeado —</option>
-                          {Object.entries(PARTY_ATTRIBUTE_LABELS).map(([key, label]) => (
+                      <select
+                        value={row.attributeKey ?? ""}
+                        onChange={(e) => updateRow(row.id, { attributeKey: e.target.value || null })}
+                        className="rounded-card border border-edge bg-mist px-2 py-1.5 text-xs text-ink_text focus:border-brand-via focus:outline-none"
+                      >
+                        <option value="">
+                          {row.role === "especifico" ? "— Nenhum (preenchimento manual) —" : "— Não mapeado —"}
+                        </option>
+                        {Object.entries(row.role === "especifico" ? CONTRACT_ATTRIBUTE_LABELS : PARTY_ATTRIBUTE_LABELS).map(
+                          ([key, label]) => (
                             <option key={key} value={key}>
                               {label}
                             </option>
-                          ))}
-                        </select>
-                      )}
+                          )
+                        )}
+                      </select>
                     </td>
                     <td className="px-3 py-2">
                       <span
