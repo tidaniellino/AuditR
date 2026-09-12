@@ -12,6 +12,52 @@ import {
   MAX_IMPORT_FILE_BYTES,
 } from "@/lib/excel/clients";
 import type { ImportResult } from "@/lib/excel/types";
+import type { Json } from "@/types/database.types";
+
+interface RepresentativeInput {
+  full_name: string;
+  cpf: string;
+  rg: string | null;
+  is_principal: boolean;
+}
+
+/** Faz o parse do JSON de representantes legais vindo do formulário de
+ *  cliente. Linhas totalmente vazias são ignoradas; se nenhuma vier marcada
+ *  como principal, a primeira é promovida (a UI já evita isso, mas o server
+ *  action não confia no client). */
+function parseRepresentativesInput(
+  raw: string
+): { ok: true; rows: RepresentativeInput[] } | { ok: false; error: string } {
+  if (!raw) return { ok: true, rows: [] };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, error: "Dados de representante legal inválidos." };
+  }
+  if (!Array.isArray(parsed)) return { ok: false, error: "Dados de representante legal inválidos." };
+
+  const rows: RepresentativeInput[] = [];
+  for (const item of parsed) {
+    const record = item as Record<string, unknown>;
+    const fullName = String(record?.full_name ?? "").trim();
+    const cpf = onlyDigits(String(record?.cpf ?? ""));
+    const rg = String(record?.rg ?? "").trim();
+    const isPrincipal = Boolean(record?.is_principal);
+    if (!fullName && !cpf) continue;
+    if (!fullName) return { ok: false, error: "Informe o nome de todos os representantes legais." };
+    if (!isValidCpfCnpj(cpf, "PF")) {
+      return { ok: false, error: `CPF inválido para o representante "${fullName}".` };
+    }
+    rows.push({ full_name: fullName, cpf, rg: rg || null, is_principal: isPrincipal });
+  }
+
+  if (rows.length > 0 && !rows.some((r) => r.is_principal)) {
+    rows[0].is_principal = true;
+  }
+  return { ok: true, rows };
+}
 
 export async function lookupCnpj(
   cnpj: string
@@ -53,6 +99,7 @@ export async function createClientRecord(
   const nomeFantasia = String(formData.get("nome_fantasia") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
+  const rg = String(formData.get("rg") ?? "").trim();
 
   if (tipoPessoa !== "PF" && tipoPessoa !== "PJ") {
     return { error: "Selecione o tipo de pessoa (PF ou PJ)." };
@@ -63,6 +110,12 @@ export async function createClientRecord(
   if (!nomeRazaoSocial) {
     return { error: tipoPessoa === "PF" ? "Nome é obrigatório." : "Razão social é obrigatória." };
   }
+
+  const representativesResult =
+    tipoPessoa === "PJ"
+      ? parseRepresentativesInput(String(formData.get("representatives") ?? ""))
+      : ({ ok: true, rows: [] } as const);
+  if (!representativesResult.ok) return { error: representativesResult.error };
 
   const endereco = {
     logradouro: String(formData.get("logradouro") ?? ""),
@@ -75,6 +128,21 @@ export async function createClientRecord(
   };
   const hasEndereco = Object.values(endereco).some((v) => v);
 
+  // Payload bruto da consulta à Receita Federal (se o usuário clicou em
+  // "Buscar" no cadastro) — guardamos tudo, não só o marcador, pra ter CNAE
+  // e situação cadastral disponíveis depois sem precisar consultar de novo.
+  let receitaFederalData: Json | null = null;
+  if (tipoPessoa === "PJ") {
+    const rawJson = String(formData.get("receita_federal_raw") ?? "");
+    if (rawJson) {
+      try {
+        receitaFederalData = JSON.parse(rawJson) as Json;
+      } catch {
+        receitaFederalData = { synced_via: "brasilapi" };
+      }
+    }
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -84,25 +152,49 @@ export async function createClientRecord(
   const { data: profile } = await supabase.from("profiles").select("org_id").eq("id", user.id).single();
   if (!profile) return { error: "Perfil do usuário não encontrado." };
 
-  const { error } = await supabase.from("clients").insert({
-    org_id: profile.org_id,
-    tipo_pessoa: tipoPessoa,
-    cpf_cnpj: cpfCnpj,
-    nome_razao_social: nomeRazaoSocial,
-    nome_fantasia: nomeFantasia || null,
-    email: email || null,
-    telefone: telefone || null,
-    endereco: hasEndereco ? endereco : null,
-    receita_federal_data: tipoPessoa === "PJ" && hasEndereco ? { synced_via: "brasilapi" } : null,
-    receita_federal_synced_at: tipoPessoa === "PJ" && hasEndereco ? new Date().toISOString() : null,
-    created_by: user.id,
-  });
+  const { data: newClient, error } = await supabase
+    .from("clients")
+    .insert({
+      org_id: profile.org_id,
+      tipo_pessoa: tipoPessoa,
+      cpf_cnpj: cpfCnpj,
+      nome_razao_social: nomeRazaoSocial,
+      nome_fantasia: nomeFantasia || null,
+      email: email || null,
+      telefone: telefone || null,
+      rg: tipoPessoa === "PF" ? rg || null : null,
+      endereco: hasEndereco ? endereco : null,
+      receita_federal_data: receitaFederalData,
+      receita_federal_synced_at: receitaFederalData ? new Date().toISOString() : null,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    if (error.code === "23505") {
+  if (error || !newClient) {
+    if (error?.code === "23505") {
       return { error: "Já existe um cliente cadastrado com este CPF/CNPJ." };
     }
     return { error: "Não foi possível salvar o cliente. Tente novamente." };
+  }
+
+  if (representativesResult.rows.length > 0) {
+    const { error: repError } = await supabase.from("client_representatives").insert(
+      representativesResult.rows.map((r) => ({
+        org_id: profile.org_id,
+        client_id: newClient.id,
+        full_name: r.full_name,
+        cpf: r.cpf,
+        rg: r.rg,
+        is_principal: r.is_principal,
+        created_by: user.id,
+      }))
+    );
+    if (repError) {
+      redirect(
+        `/clientes?erro=${encodeURIComponent(`Cliente "${nomeRazaoSocial}" cadastrado, mas houve um problema ao salvar os representantes legais.`)}`
+      );
+    }
   }
 
   redirect(`/clientes?sucesso=${encodeURIComponent(`Cliente "${nomeRazaoSocial}" cadastrado.`)}`);
@@ -119,6 +211,7 @@ export async function updateClientRecord(
   const nomeFantasia = String(formData.get("nome_fantasia") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
+  const rg = String(formData.get("rg") ?? "").trim();
 
   if (!clientId) return { error: "Cliente não encontrado." };
   if (tipoPessoa !== "PF" && tipoPessoa !== "PJ") {
@@ -131,6 +224,12 @@ export async function updateClientRecord(
     return { error: tipoPessoa === "PF" ? "Nome é obrigatório." : "Razão social é obrigatória." };
   }
 
+  const representativesResult =
+    tipoPessoa === "PJ"
+      ? parseRepresentativesInput(String(formData.get("representatives") ?? ""))
+      : ({ ok: true, rows: [] } as const);
+  if (!representativesResult.ok) return { error: representativesResult.error };
+
   const endereco = {
     logradouro: String(formData.get("logradouro") ?? ""),
     numero: String(formData.get("numero") ?? ""),
@@ -142,11 +241,31 @@ export async function updateClientRecord(
   };
   const hasEndereco = Object.values(endereco).some((v) => v);
 
+  // Só atualiza os dados da Receita Federal se o usuário rodou uma nova
+  // consulta nesta edição — não sobrescreve o que já estava salvo à toa.
+  let receitaFederalUpdate: { receita_federal_data: Json; receita_federal_synced_at: string } | null = null;
+  if (tipoPessoa === "PJ") {
+    const rawJson = String(formData.get("receita_federal_raw") ?? "");
+    if (rawJson) {
+      try {
+        receitaFederalUpdate = {
+          receita_federal_data: JSON.parse(rawJson) as Json,
+          receita_federal_synced_at: new Date().toISOString(),
+        };
+      } catch {
+        // JSON inválido — ignora, mantém o que já estava salvo.
+      }
+    }
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { data: profile } = await supabase.from("profiles").select("org_id").eq("id", user.id).single();
+  if (!profile) return { error: "Perfil do usuário não encontrado." };
 
   const { error } = await supabase
     .from("clients")
@@ -157,7 +276,9 @@ export async function updateClientRecord(
       nome_fantasia: nomeFantasia || null,
       email: email || null,
       telefone: telefone || null,
+      rg: tipoPessoa === "PF" ? rg || null : null,
       endereco: hasEndereco ? endereco : null,
+      ...receitaFederalUpdate,
     })
     .eq("id", clientId);
 
@@ -166,6 +287,29 @@ export async function updateClientRecord(
       return { error: "Já existe um cliente cadastrado com este CPF/CNPJ." };
     }
     return { error: "Não foi possível salvar o cliente. Tente novamente." };
+  }
+
+  // Sincroniza representantes por substituição total — mais simples que
+  // diff, e nada mais referencia essas linhas diretamente (contratos já
+  // gerados guardam um snapshot próprio em contracts.party_data).
+  await supabase.from("client_representatives").delete().eq("client_id", clientId);
+  if (tipoPessoa === "PJ" && representativesResult.rows.length > 0) {
+    const { error: repError } = await supabase.from("client_representatives").insert(
+      representativesResult.rows.map((r) => ({
+        org_id: profile.org_id,
+        client_id: clientId,
+        full_name: r.full_name,
+        cpf: r.cpf,
+        rg: r.rg,
+        is_principal: r.is_principal,
+        created_by: user.id,
+      }))
+    );
+    if (repError) {
+      redirect(
+        `/clientes?erro=${encodeURIComponent(`Cliente "${nomeRazaoSocial}" atualizado, mas houve um problema ao salvar os representantes legais.`)}`
+      );
+    }
   }
 
   revalidatePath("/clientes");

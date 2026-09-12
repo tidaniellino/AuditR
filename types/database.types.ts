@@ -272,6 +272,67 @@ export type Database = {
           },
         ]
       }
+      client_representatives: {
+        Row: {
+          client_id: string
+          cpf: string
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          is_principal: boolean
+          org_id: string
+          rg: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          cpf: string
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          is_principal?: boolean
+          org_id: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          cpf?: string
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          is_principal?: boolean
+          org_id?: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_representatives_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_representatives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_representatives_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           active: boolean
@@ -286,6 +347,7 @@ export type Database = {
           org_id: string
           receita_federal_data: Json | null
           receita_federal_synced_at: string | null
+          rg: string | null
           telefone: string | null
           tipo_pessoa: Database["public"]["Enums"]["pessoa_tipo"]
           updated_at: string
@@ -303,6 +365,7 @@ export type Database = {
           org_id: string
           receita_federal_data?: Json | null
           receita_federal_synced_at?: string | null
+          rg?: string | null
           telefone?: string | null
           tipo_pessoa: Database["public"]["Enums"]["pessoa_tipo"]
           updated_at?: string
@@ -320,6 +383,7 @@ export type Database = {
           org_id?: string
           receita_federal_data?: Json | null
           receita_federal_synced_at?: string | null
+          rg?: string | null
           telefone?: string | null
           tipo_pessoa?: Database["public"]["Enums"]["pessoa_tipo"]
           updated_at?: string
@@ -617,6 +681,7 @@ export type Database = {
           generated_pdf_path: string | null
           id: string
           org_id: string
+          party_data: Json | null
           signature_external_id: string | null
           signature_link: string | null
           signature_provider:
@@ -643,6 +708,7 @@ export type Database = {
           generated_pdf_path?: string | null
           id?: string
           org_id: string
+          party_data?: Json | null
           signature_external_id?: string | null
           signature_link?: string | null
           signature_provider?:
@@ -669,6 +735,7 @@ export type Database = {
           generated_pdf_path?: string | null
           id?: string
           org_id?: string
+          party_data?: Json | null
           signature_external_id?: string | null
           signature_link?: string | null
           signature_provider?:
@@ -872,6 +939,7 @@ export type Database = {
           failed_login_attempts: number
           full_name: string
           id: string
+          is_default_signer: boolean
           login_blocked: boolean
           login_locked_until: string | null
           must_change_password: boolean
@@ -888,6 +956,7 @@ export type Database = {
           failed_login_attempts?: number
           full_name: string
           id: string
+          is_default_signer?: boolean
           login_blocked?: boolean
           login_locked_until?: string | null
           must_change_password?: boolean
@@ -904,6 +973,7 @@ export type Database = {
           failed_login_attempts?: number
           full_name?: string
           id?: string
+          is_default_signer?: boolean
           login_blocked?: boolean
           login_locked_until?: string | null
           must_change_password?: boolean
@@ -1253,6 +1323,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_notifications_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

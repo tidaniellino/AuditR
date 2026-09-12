@@ -7,6 +7,7 @@ import { CreateMemberModal } from "./CreateMemberModal";
 import { MemberRoleSelect } from "./MemberRoleSelect";
 import { MemberActiveToggle } from "./MemberActiveToggle";
 import { UnlockMemberButton } from "./UnlockMemberButton";
+import { DefaultSignerToggle } from "./DefaultSignerToggle";
 
 export default async function EmpresaPage() {
   const supabase = await createClient();
@@ -23,7 +24,7 @@ export default async function EmpresaPage() {
     supabase.from("organizations").select("*").eq("id", profile!.org_id).single(),
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, active, login_blocked")
+      .select("id, full_name, email, role, active, login_blocked, is_default_signer")
       .eq("org_id", profile!.org_id)
       .order("created_at", { ascending: true }),
   ]);
@@ -61,7 +62,8 @@ export default async function EmpresaPage() {
             <h2 className="text-sm font-medium text-ink_text">Equipe</h2>
             <p className="mt-1 text-xs text-muted">
               Usuários com acesso ao sistema. Quem tem perfil Sócio assina automaticamente os contratos
-              gerados (nome, CPF e assinatura eletrônica no PDF).
+              gerados (nome, CPF e assinatura eletrônica no PDF). Marque um Sócio como signatário padrão
+              para ele ser o usado quando o contrato só precisa de uma assinatura.
             </p>
           </div>
           <CreateMemberModal />
@@ -75,6 +77,7 @@ export default async function EmpresaPage() {
                 <th className="px-4 py-3 font-medium">E-mail</th>
                 <th className="px-4 py-3 font-medium">Perfil</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Assinatura</th>
                 <th className="px-4 py-3 font-medium">Acesso</th>
               </tr>
             </thead>
@@ -93,6 +96,13 @@ export default async function EmpresaPage() {
                     </td>
                     <td className="px-4 py-3">
                       <MemberActiveToggle memberId={m.id} active={m.active} disabled={isSelf} />
+                    </td>
+                    <td className="px-4 py-3">
+                      {m.role === "socio" ? (
+                        <DefaultSignerToggle memberId={m.id} isDefault={m.is_default_signer} />
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {m.login_blocked ? (

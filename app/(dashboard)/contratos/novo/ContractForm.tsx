@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { createContract, type ContractFormState } from "../actions";
+import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useActionToast } from "@/components/ui/Toast";
@@ -14,6 +16,11 @@ const PLACEHOLDERS = [
   "cliente_email",
   "cliente_telefone",
   "cliente_endereco",
+  "cliente_rg",
+  "cliente_nome_fantasia",
+  "cliente_representante_nome",
+  "cliente_representante_cpf",
+  "cliente_representante_rg",
   "contrato_titulo",
   "contrato_tipo",
   "contrato_valor",
@@ -21,23 +28,59 @@ const PLACEHOLDERS = [
   "data_atual",
 ];
 
+interface ClientOption {
+  id: string;
+  tipo_pessoa: "PF" | "PJ";
+  cpf_cnpj: string;
+  nome_razao_social: string;
+  nome_fantasia: string | null;
+  rg: string | null;
+  endereco: Record<string, string | null> | null;
+  representante: { full_name: string; cpf: string; rg: string | null } | null;
+}
+
+function enderecoToText(endereco: Record<string, string | null> | null): string {
+  if (!endereco) return "";
+  return [
+    [endereco.logradouro, endereco.numero].filter(Boolean).join(", "),
+    endereco.complemento ?? "",
+    endereco.bairro ?? "",
+    endereco.municipio && endereco.uf ? `${endereco.municipio}/${endereco.uf}` : endereco.municipio || endereco.uf || "",
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
 export function ContractForm({
   clients,
   templates,
   clauses,
 }: {
-  clients: { id: string; nome_razao_social: string }[];
+  clients: ClientOption[];
   templates: { id: string; name: string; contract_type: string | null }[];
   clauses: { id: string; title: string }[];
 }) {
   const [state, formAction] = useFormState(createContract, initialState);
   useActionToast(state);
 
+  const clientsById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const selectedClient = selectedClientId ? clientsById.get(selectedClientId) ?? null : null;
+  const [invertParties, setInvertParties] = useState(false);
+  const clientRoleLabel = invertParties ? "Contratada" : "Contratante";
+
   return (
     <div className="flex max-w-lg flex-col gap-6">
       <form action={formAction} className="flex flex-col gap-4">
         <Field label="Cliente" htmlFor="client_id">
-          <select id="client_id" name="client_id" required className={inputClass}>
+          <select
+            id="client_id"
+            name="client_id"
+            required
+            value={selectedClientId}
+            onChange={(e) => setSelectedClientId(e.target.value)}
+            className={inputClass}
+          >
             <option value="">— Selecionar —</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -46,6 +89,112 @@ export function ContractForm({
             ))}
           </select>
         </Field>
+
+        {selectedClient && (
+          <label className="flex items-start gap-2.5 rounded-card border border-edge bg-mist px-3.5 py-2.5 text-sm text-ink_text">
+            <input
+              type="checkbox"
+              name="invert_parties"
+              checked={invertParties}
+              onChange={(e) => setInvertParties(e.target.checked)}
+              className="mt-0.5 accent-brand-via"
+            />
+            <span>
+              <span className="font-medium">Inverter partes</span>
+              <span className="block text-xs text-muted">
+                Cliente vira Contratada e Minha Empresa vira Contratante — só neste contrato, não muda o
+                cadastro nem o modelo.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {selectedClient && (
+          <fieldset key={selectedClient.id} className="flex flex-col gap-3 rounded-card border border-edge p-4">
+            <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+              Dados do cliente — usado como {clientRoleLabel} neste contrato, edite se precisar
+            </legend>
+
+            <Field label={selectedClient.tipo_pessoa === "PF" ? "Nome completo" : "Razão social"} htmlFor="cliente_nome">
+              <input id="cliente_nome" name="cliente_nome" defaultValue={selectedClient.nome_razao_social} className={inputClass} />
+            </Field>
+
+            {selectedClient.tipo_pessoa === "PJ" && (
+              <Field label="Nome fantasia" htmlFor="cliente_nome_fantasia">
+                <input
+                  id="cliente_nome_fantasia"
+                  name="cliente_nome_fantasia"
+                  defaultValue={selectedClient.nome_fantasia ?? ""}
+                  className={inputClass}
+                />
+              </Field>
+            )}
+
+            <Field label={selectedClient.tipo_pessoa === "PF" ? "CPF" : "CNPJ"} htmlFor="cliente_cpf_cnpj">
+              <input
+                id="cliente_cpf_cnpj"
+                name="cliente_cpf_cnpj"
+                defaultValue={formatCpfCnpj(selectedClient.cpf_cnpj, selectedClient.tipo_pessoa)}
+                className={inputClass}
+              />
+            </Field>
+
+            {selectedClient.tipo_pessoa === "PF" && (
+              <Field label="RG" htmlFor="cliente_rg" hint="Fica em branco no contrato se não houver no cadastro">
+                <input id="cliente_rg" name="cliente_rg" defaultValue={selectedClient.rg ?? ""} className={inputClass} />
+              </Field>
+            )}
+
+            <Field label="Endereço" htmlFor="cliente_endereco">
+              <input
+                id="cliente_endereco"
+                name="cliente_endereco"
+                defaultValue={enderecoToText(selectedClient.endereco)}
+                className={inputClass}
+              />
+            </Field>
+
+            {selectedClient.tipo_pessoa === "PJ" && (
+              <>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Representante legal</p>
+                <Field label="Nome do representante" htmlFor="cliente_representante_nome">
+                  <input
+                    id="cliente_representante_nome"
+                    name="cliente_representante_nome"
+                    defaultValue={selectedClient.representante?.full_name ?? ""}
+                    className={inputClass}
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="CPF do representante" htmlFor="cliente_representante_cpf">
+                    <input
+                      id="cliente_representante_cpf"
+                      name="cliente_representante_cpf"
+                      defaultValue={
+                        selectedClient.representante ? formatCpfCnpj(selectedClient.representante.cpf, "PF") : ""
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field label="RG do representante" htmlFor="cliente_representante_rg">
+                    <input
+                      id="cliente_representante_rg"
+                      name="cliente_representante_rg"
+                      defaultValue={selectedClient.representante?.rg ?? ""}
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+                {!selectedClient.representante && (
+                  <p className="text-xs text-muted">
+                    Este cliente não tem representante legal cadastrado — cadastre em Clientes para
+                    preencher automaticamente, ou informe manualmente acima.
+                  </p>
+                )}
+              </>
+            )}
+          </fieldset>
+        )}
 
         <Field label="Modelo de contrato" htmlFor="template_id">
           <select id="template_id" name="template_id" required className={inputClass}>

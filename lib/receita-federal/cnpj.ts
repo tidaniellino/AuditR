@@ -16,6 +16,7 @@ export interface CnpjLookupResult {
   email: string | null;
   telefone: string | null;
   situacaoCadastral: string;
+  cnaePrincipal: string | null;
   endereco: CnpjEndereco;
   raw: unknown;
 }
@@ -55,6 +56,7 @@ export async function fetchCnpjData(cnpjRaw: string): Promise<CnpjLookupResult> 
     email: data.email || null,
     telefone: data.ddd_telefone_1 || null,
     situacaoCadastral: data.descricao_situacao_cadastral ?? "",
+    cnaePrincipal: data.cnae_fiscal_descricao || null,
     endereco: {
       logradouro: data.logradouro ?? "",
       numero: data.numero ?? "",

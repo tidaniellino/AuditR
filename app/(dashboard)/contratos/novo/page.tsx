@@ -4,10 +4,10 @@ import { ContractForm } from "./ContractForm";
 export default async function NovoContratoPage() {
   const supabase = await createClient();
 
-  const [{ data: clients }, { data: templates }, { data: clauses }] = await Promise.all([
+  const [{ data: clients }, { data: templates }, { data: clauses }, { data: representatives }] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, nome_razao_social")
+      .select("id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, rg, endereco")
       .eq("active", true)
       .order("nome_razao_social", { ascending: true }),
     supabase
@@ -20,7 +20,29 @@ export default async function NovoContratoPage() {
       .select("id, title")
       .eq("status", "approved")
       .order("title", { ascending: true }),
+    supabase
+      .from("client_representatives")
+      .select("client_id, full_name, cpf, rg, is_principal")
+      .order("is_principal", { ascending: false }),
   ]);
+
+  const representativeByClient = new Map<string, { full_name: string; cpf: string; rg: string | null }>();
+  for (const rep of representatives ?? []) {
+    if (!representativeByClient.has(rep.client_id)) {
+      representativeByClient.set(rep.client_id, { full_name: rep.full_name, cpf: rep.cpf, rg: rep.rg });
+    }
+  }
+
+  const clientsWithDetails = (clients ?? []).map((c) => ({
+    id: c.id,
+    tipo_pessoa: c.tipo_pessoa,
+    cpf_cnpj: c.cpf_cnpj,
+    nome_razao_social: c.nome_razao_social,
+    nome_fantasia: c.nome_fantasia,
+    rg: c.rg,
+    endereco: c.endereco as Record<string, string | null> | null,
+    representante: representativeByClient.get(c.id) ?? null,
+  }));
 
   return (
     <div>
@@ -30,7 +52,7 @@ export default async function NovoContratoPage() {
         Escolha o cliente e o modelo para gerar o contrato em .docx e .pdf. Você poderá enviar para
         assinatura na tela do contrato depois de gerado.
       </p>
-      <ContractForm clients={clients ?? []} templates={templates ?? []} clauses={clauses ?? []} />
+      <ContractForm clients={clientsWithDetails} templates={templates ?? []} clauses={clauses ?? []} />
     </div>
   );
 }

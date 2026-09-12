@@ -9,6 +9,14 @@ import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useActionToast } from "@/components/ui/Toast";
 
+export interface ClientRepresentative {
+  id?: string;
+  full_name: string;
+  cpf: string;
+  rg: string | null;
+  is_principal: boolean;
+}
+
 export interface ClientRecord {
   id: string;
   tipo_pessoa: "PF" | "PJ";
@@ -18,6 +26,8 @@ export interface ClientRecord {
   email: string | null;
   telefone: string | null;
   endereco: Record<string, string | null> | null;
+  rg: string | null;
+  representatives: ClientRepresentative[];
 }
 
 export function ClientForm({ client }: { client?: ClientRecord }) {
@@ -33,6 +43,37 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
   const [, startCepTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const cepLookedUpRef = useRef<string | null>(null);
+  const [representatives, setRepresentatives] = useState<
+    { full_name: string; cpf: string; rg: string; is_principal: boolean }[]
+  >(
+    () =>
+      client?.representatives.map((r) => ({
+        full_name: r.full_name,
+        cpf: onlyDigits(r.cpf),
+        rg: r.rg ?? "",
+        is_principal: r.is_principal,
+      })) ?? []
+  );
+
+  function updateRepresentative(index: number, patch: Partial<(typeof representatives)[number]>) {
+    setRepresentatives((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  function addRepresentative() {
+    setRepresentatives((prev) => [...prev, { full_name: "", cpf: "", rg: "", is_principal: prev.length === 0 }]);
+  }
+
+  function removeRepresentative(index: number) {
+    setRepresentatives((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length > 0 && !next.some((r) => r.is_principal)) next[0] = { ...next[0], is_principal: true };
+      return next;
+    });
+  }
+
+  function setPrincipalRepresentative(index: number) {
+    setRepresentatives((prev) => prev.map((r, i) => ({ ...r, is_principal: i === index })));
+  }
 
   function handleCepLookup(rawCep: string) {
     const cep = onlyDigits(rawCep);
@@ -163,10 +204,21 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
         )}
         {lookupError && <p className="mt-1 text-xs text-stamp-dim">{lookupError}</p>}
         {dadosRf && (
-          <p className="mt-1 text-xs text-seal">
-            Dados carregados da Receita Federal — situação: {dadosRf.situacaoCadastral || "não informada"}.
-          </p>
+          <div className="mt-1 space-y-0.5">
+            <p
+              className={`text-xs ${
+                dadosRf.situacaoCadastral && dadosRf.situacaoCadastral.toUpperCase() !== "ATIVA"
+                  ? "font-semibold text-stamp-dim"
+                  : "text-seal"
+              }`}
+            >
+              Dados carregados da Receita Federal — situação: {dadosRf.situacaoCadastral || "não informada"}
+              {dadosRf.situacaoCadastral && dadosRf.situacaoCadastral.toUpperCase() !== "ATIVA" ? " ⚠" : ""}
+            </p>
+            {dadosRf.cnaePrincipal && <p className="text-xs text-muted">CNAE principal: {dadosRf.cnaePrincipal}</p>}
+          </div>
         )}
+        <input type="hidden" name="receita_federal_raw" value={dadosRf ? JSON.stringify(dadosRf.raw) : ""} />
       </Field>
 
       <Field label={tipoPessoa === "PF" ? "Nome completo" : "Razão social"} htmlFor="nome_razao_social">
@@ -185,6 +237,12 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
         </Field>
       )}
 
+      {tipoPessoa === "PF" && (
+        <Field label="RG" htmlFor="rg" hint="Opcional — usado para preencher contratos automaticamente">
+          <input id="rg" name="rg" defaultValue={client?.rg ?? ""} className={inputClass} />
+        </Field>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <Field label="E-mail" htmlFor="email">
           <input id="email" name="email" type="email" defaultValue={client?.email ?? ""} className={inputClass} />
@@ -193,6 +251,75 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
           <input id="telefone" name="telefone" defaultValue={client?.telefone ?? ""} className={inputClass} />
         </Field>
       </div>
+
+      {tipoPessoa === "PJ" && (
+        <fieldset className="flex flex-col gap-3 rounded-card border border-edge p-4">
+          <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+            Representantes legais
+          </legend>
+          <p className="text-xs text-muted">
+            Usados para preencher automaticamente o contrato. Marque um como principal — é o usado
+            quando há mais de um.
+          </p>
+
+          {representatives.length === 0 && (
+            <p className="text-xs text-muted">Nenhum representante cadastrado ainda.</p>
+          )}
+
+          {representatives.map((rep, index) => (
+            <div key={index} className="flex flex-col gap-2 rounded-card border border-edge/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-xs text-ink_text">
+                  <input
+                    type="radio"
+                    checked={rep.is_principal}
+                    onChange={() => setPrincipalRepresentative(index)}
+                    className="accent-brand-via"
+                  />
+                  Principal
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeRepresentative(index)}
+                  className="text-xs text-stamp-dim hover:underline"
+                >
+                  Remover
+                </button>
+              </div>
+              <input
+                placeholder="Nome completo"
+                value={rep.full_name}
+                onChange={(e) => updateRepresentative(index, { full_name: e.target.value })}
+                className={inputClass}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  placeholder="CPF"
+                  value={formatCpfCnpj(rep.cpf, "PF")}
+                  onChange={(e) => updateRepresentative(index, { cpf: onlyDigits(e.target.value) })}
+                  className={inputClass}
+                />
+                <input
+                  placeholder="RG"
+                  value={rep.rg}
+                  onChange={(e) => updateRepresentative(index, { rg: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addRepresentative}
+            className="self-start rounded-card border border-edge px-3 py-1.5 text-xs font-medium text-ink_text hover:bg-mist"
+          >
+            + Adicionar representante
+          </button>
+
+          <input type="hidden" name="representatives" value={JSON.stringify(representatives)} />
+        </fieldset>
+      )}
 
       <fieldset className="flex flex-col gap-3 rounded-card border border-edge p-4">
         <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">

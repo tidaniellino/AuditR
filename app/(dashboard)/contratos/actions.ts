@@ -59,6 +59,17 @@ async function loadExtraClause(
   return { title: clause.title, content: version.content };
 }
 
+interface ContratanteOverrides {
+  nome?: string;
+  documento?: string;
+  endereco?: string;
+  rg?: string;
+  nomeFantasia?: string;
+  representanteNome?: string;
+  representanteCpf?: string;
+  representanteRg?: string;
+}
+
 async function generateContract({
   supabase,
   userId,
@@ -68,6 +79,8 @@ async function generateContract({
   titleInput,
   valor,
   clauseId,
+  contratanteOverrides,
+  invertParties,
 }: {
   supabase: SupabaseClient;
   userId: string;
@@ -77,6 +90,11 @@ async function generateContract({
   titleInput: string;
   valor: number | null;
   clauseId?: string | null;
+  contratanteOverrides?: ContratanteOverrides;
+  /** Prompt 3: inverte o mapeamento padrão (Cliente=Contratante, Minha
+   *  Empresa=Contratada) só para este contrato — não afeta o modelo nem
+   *  outros contratos. */
+  invertParties?: boolean;
 }): Promise<{ contractId: string } | { error: string }> {
   const usage = await getContractUsage(supabase, profile.org_id);
   if (usage.blocked) {
@@ -118,7 +136,8 @@ async function generateContract({
       (endereco.uf ? `/${endereco.uf}` : "")
     : "";
 
-  const [{ data: org }, { data: partners }, extraClause] = await Promise.all([
+  const [{ data: org }, { data: partners }, { data: defaultSigner }, { data: principalRepresentative }, extraClause] =
+    await Promise.all([
     supabase.from("organizations").select("*").eq("id", profile.org_id).single(),
     supabase
       .from("profiles")
@@ -127,8 +146,50 @@ async function generateContract({
       .eq("role", "socio")
       .eq("active", true)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("profiles")
+      .select("id, full_name, cpf")
+      .eq("org_id", profile.org_id)
+      .eq("role", "socio")
+      .eq("active", true)
+      .eq("is_default_signer", true)
+      .maybeSingle(),
+    supabase
+      .from("client_representatives")
+      .select("full_name, cpf, rg")
+      .eq("client_id", clientId)
+      .order("is_principal", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
     loadExtraClause(supabase, profile.org_id, clauseId ?? null),
   ]);
+
+  // Resolve os dados finais da Contratante: usa o que o usuário editou na
+  // tela de geração (contratanteOverrides), senão cai pro cadastro do
+  // cliente — campo sem correspondência fica em branco, não impede a
+  // geração, exceto os campos-base checados abaixo.
+  const overrides = contratanteOverrides ?? {};
+  const resolvedNome = overrides.nome?.trim() || client.nome_razao_social;
+  const resolvedDocumento = overrides.documento?.trim() || formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa);
+  const resolvedEndereco = overrides.endereco?.trim() || enderecoTexto;
+  const resolvedRg = overrides.rg?.trim() || client.rg || "";
+  const resolvedNomeFantasia = overrides.nomeFantasia?.trim() || client.nome_fantasia || "";
+  const resolvedRepresentanteNome = overrides.representanteNome?.trim() || principalRepresentative?.full_name || "";
+  const resolvedRepresentanteCpf =
+    overrides.representanteCpf?.trim() ||
+    (principalRepresentative ? formatCpfCnpj(principalRepresentative.cpf, "PF") : "");
+  const resolvedRepresentanteRg = overrides.representanteRg?.trim() || principalRepresentative?.rg || "";
+
+  const missingContratanteFields: string[] = [];
+  if (!resolvedNome) missingContratanteFields.push("nome/razão social");
+  if (!resolvedDocumento) missingContratanteFields.push("CPF/CNPJ");
+  if (!resolvedEndereco) missingContratanteFields.push("endereço");
+  if (missingContratanteFields.length > 0) {
+    return {
+      error: `Complete o cadastro do cliente antes de gerar o contrato — faltando: ${missingContratanteFields.join(", ")}.`,
+    };
+  }
 
   const orgEndereco = org?.endereco as Record<string, string | null> | null;
   const orgEnderecoTexto = orgEndereco
@@ -139,6 +200,16 @@ async function generateContract({
     : "";
   const orgCity =
     orgEndereco?.municipio && orgEndereco?.uf ? `${orgEndereco.municipio}/${orgEndereco.uf}` : null;
+
+  const missingContratadaFields: string[] = [];
+  if (!org?.cnpj) missingContratadaFields.push("CNPJ");
+  if (!orgEnderecoTexto) missingContratadaFields.push("endereço");
+  if (missingContratadaFields.length > 0) {
+    return {
+      error: `Complete o cadastro de "Minha Empresa" antes de gerar o contrato — faltando: ${missingContratadaFields.join(", ")}. Acesse Minha Empresa no menu.`,
+    };
+  }
+
   const contractPartners: ContractPartner[] = (partners ?? []).map((p) => ({
     id: p.id,
     fullName: p.full_name,
@@ -146,22 +217,94 @@ async function generateContract({
     roleTitle: ROLE_LABELS.socio,
   }));
 
+  // Cliente e Minha Empresa como blocos de dados intercambiáveis — o botão
+  // de inverter partes (Prompt 3) só decide qual dos dois cai em qual papel;
+  // os {cliente_*}/{escritorio_*} do modelo continuam representando "quem
+  // está no papel de Contratante"/"Contratada", não literalmente cliente/org.
+  const clientParty = {
+    nome: resolvedNome,
+    documento: resolvedDocumento,
+    endereco: resolvedEndereco,
+    email: client.email ?? "",
+    telefone: client.telefone ?? "",
+    rg: resolvedRg,
+    nomeFantasia: resolvedNomeFantasia,
+    representanteNome: resolvedRepresentanteNome,
+    representanteCpf: resolvedRepresentanteCpf,
+    representanteRg: resolvedRepresentanteRg,
+  };
+  const orgDefaultSignerCpf = defaultSigner?.cpf ? formatCpfCnpj(defaultSigner.cpf, "PF") : "";
+  const orgParty = {
+    nome: org?.name ?? "",
+    documento: org?.cnpj ?? "",
+    endereco: orgEnderecoTexto,
+    email: org?.email ?? "",
+    telefone: org?.telefone ?? "",
+    rg: "",
+    nomeFantasia: "",
+    representanteNome: defaultSigner?.full_name ?? "",
+    representanteCpf: orgDefaultSignerCpf,
+    representanteRg: "",
+  };
+
+  const contratanteParty = invertParties ? orgParty : clientParty;
+  const contratadaParty = invertParties ? clientParty : orgParty;
+
   const mergeData = {
-    cliente_nome: client.nome_razao_social,
-    cliente_cpf_cnpj: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
-    cliente_email: client.email ?? "",
-    cliente_telefone: client.telefone ?? "",
-    cliente_endereco: enderecoTexto,
+    cliente_nome: contratanteParty.nome,
+    cliente_cpf_cnpj: contratanteParty.documento,
+    cliente_email: contratanteParty.email,
+    cliente_telefone: contratanteParty.telefone,
+    cliente_endereco: contratanteParty.endereco,
+    cliente_rg: contratanteParty.rg,
+    cliente_nome_fantasia: contratanteParty.nomeFantasia,
+    cliente_representante_nome: contratanteParty.representanteNome,
+    cliente_representante_cpf: contratanteParty.representanteCpf,
+    cliente_representante_rg: contratanteParty.representanteRg,
     contrato_titulo: title,
     contrato_tipo: template.contract_type ?? "",
     contrato_valor: valor != null ? formatBRL(valor) : "",
-    escritorio_nome: org?.name ?? "",
-    escritorio_cnpj: org?.cnpj ?? "",
-    escritorio_endereco: orgEnderecoTexto,
-    escritorio_telefone: org?.telefone ?? "",
-    escritorio_email: org?.email ?? "",
-    socio_nome: contractPartners[0]?.fullName ?? "",
+    escritorio_nome: contratadaParty.nome,
+    escritorio_cnpj: contratadaParty.documento,
+    escritorio_endereco: contratadaParty.endereco,
+    escritorio_telefone: contratadaParty.telefone,
+    escritorio_email: contratadaParty.email,
+    // {socio_nome} é sempre um sócio real de Minha Empresa, independente de
+    // qual papel contratual a empresa ocupa neste contrato.
+    socio_nome: defaultSigner?.full_name ?? contractPartners[0]?.fullName ?? "",
     data_atual: new Date().toLocaleDateString("pt-BR"),
+  };
+
+  // Snapshot final das partes usado neste contrato — não muda
+  // retroativamente se o cadastro do cliente ou de Minha Empresa mudar
+  // depois, e registra qual papel cada parte ocupou (para consulta futura,
+  // sem afetar o modelo nem outros contratos).
+  const partyData = {
+    invertido: Boolean(invertParties),
+    contratante: {
+      role: invertParties ? ("organizacao" as const) : ("cliente" as const),
+      client_id: clientId,
+      org_id: invertParties ? profile.org_id : null,
+      nome: contratanteParty.nome,
+      documento: contratanteParty.documento,
+      endereco: contratanteParty.endereco,
+      rg: contratanteParty.rg || null,
+      nome_fantasia: contratanteParty.nomeFantasia || null,
+      representante_nome: contratanteParty.representanteNome || null,
+      representante_cpf: contratanteParty.representanteCpf || null,
+      representante_rg: contratanteParty.representanteRg || null,
+    },
+    contratada: {
+      role: invertParties ? ("cliente" as const) : ("organizacao" as const),
+      client_id: invertParties ? clientId : null,
+      org_id: invertParties ? null : profile.org_id,
+      nome: contratadaParty.nome,
+      documento: contratadaParty.documento,
+      endereco: contratadaParty.endereco,
+      signatario_padrao_nome: defaultSigner?.full_name ?? null,
+      signatario_padrao_cpf: orgDefaultSignerCpf || null,
+      signatarios: contractPartners.map((p) => p.fullName),
+    },
   };
 
   let mergedDocx: Buffer;
@@ -182,6 +325,7 @@ async function generateContract({
       title,
       valor,
       created_by: userId,
+      party_data: partyData,
     })
     .select("id")
     .single();
@@ -193,11 +337,15 @@ async function generateContract({
     contractId: contract.id,
     templateName: template.name,
     orgName: org?.name ?? "",
+    orgRoleLabel: invertParties ? "Contratante" : "Contratada",
     orgCity,
     contractType: template.contract_type,
-    clientName: client.nome_razao_social,
-    clientDocument: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
-    clientEmail: client.email,
+    contratanteNome: contratanteParty.nome,
+    contratanteDocumento: contratanteParty.documento,
+    contratanteEmail: contratanteParty.email || null,
+    contratadaNome: contratadaParty.nome,
+    contratadaDocumento: contratadaParty.documento,
+    contratadaEmail: contratadaParty.email || null,
     bodyParagraphs: paragraphs,
     extraClause,
     partners: contractPartners,
@@ -284,6 +432,22 @@ async function generateContractFromUpload({
   const title = titleInput || client.nome_razao_social;
   const orgEndereco = org?.endereco as Record<string, string | null> | null;
   const orgCity = orgEndereco?.municipio && orgEndereco?.uf ? `${orgEndereco.municipio}/${orgEndereco.uf}` : null;
+  const orgEnderecoTexto = orgEndereco
+    ? [orgEndereco.logradouro, orgEndereco.numero].filter(Boolean).join(", ") +
+      (orgEndereco.bairro ? ` - ${orgEndereco.bairro}` : "") +
+      (orgEndereco.municipio ? `, ${orgEndereco.municipio}` : "") +
+      (orgEndereco.uf ? `/${orgEndereco.uf}` : "")
+    : "";
+
+  const missingContratadaFields: string[] = [];
+  if (!org?.cnpj) missingContratadaFields.push("CNPJ");
+  if (!orgEnderecoTexto) missingContratadaFields.push("endereço");
+  if (missingContratadaFields.length > 0) {
+    return {
+      error: `Complete o cadastro de "Minha Empresa" antes de gerar o contrato — faltando: ${missingContratadaFields.join(", ")}. Acesse Minha Empresa no menu.`,
+    };
+  }
+
   const contractPartners: ContractPartner[] = (partners ?? []).map((p) => ({
     id: p.id,
     fullName: p.full_name,
@@ -293,6 +457,28 @@ async function generateContractFromUpload({
 
   const mergedDocx = Buffer.from(await file.arrayBuffer());
 
+  const partyData = {
+    contratante: {
+      role: "cliente" as const,
+      client_id: clientId,
+      nome: client.nome_razao_social,
+      documento: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
+      endereco: null,
+      rg: client.rg || null,
+      nome_fantasia: client.nome_fantasia || null,
+      representante_nome: null,
+      representante_cpf: null,
+      representante_rg: null,
+    },
+    contratada: {
+      role: "organizacao" as const,
+      org_id: profile.org_id,
+      nome: org?.name ?? "",
+      documento: org?.cnpj ?? "",
+      endereco: orgEnderecoTexto,
+    },
+  };
+
   const { data: contract, error: insertError } = await supabase
     .from("contracts")
     .insert({
@@ -301,6 +487,7 @@ async function generateContractFromUpload({
       template_id: null,
       title,
       created_by: userId,
+      party_data: partyData,
     })
     .select("id")
     .single();
@@ -312,11 +499,15 @@ async function generateContractFromUpload({
     contractId: contract.id,
     templateName: "Contrato avulso (upload)",
     orgName: org?.name ?? "",
+    orgRoleLabel: "Contratada",
     orgCity,
     contractType: null,
-    clientName: client.nome_razao_social,
-    clientDocument: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
-    clientEmail: client.email,
+    contratanteNome: client.nome_razao_social,
+    contratanteDocumento: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
+    contratanteEmail: client.email,
+    contratadaNome: org?.name ?? "",
+    contratadaDocumento: org?.cnpj ?? "",
+    contratadaEmail: org?.email ?? null,
     bodyParagraphs: paragraphs,
     partners: contractPartners,
   });
@@ -550,6 +741,21 @@ export async function createContract(
     if (Number.isNaN(valor) || valor < 0) return { error: "Valor acordado inválido." };
   }
 
+  // Overrides da tela de revisão da Contratante — só valem para este
+  // contrato, nunca alteram o cadastro do cliente (ver ContractForm.tsx).
+  const contratanteOverrides: ContratanteOverrides = {
+    nome: String(formData.get("cliente_nome") ?? "").trim() || undefined,
+    documento: String(formData.get("cliente_cpf_cnpj") ?? "").trim() || undefined,
+    endereco: String(formData.get("cliente_endereco") ?? "").trim() || undefined,
+    rg: String(formData.get("cliente_rg") ?? "").trim() || undefined,
+    nomeFantasia: String(formData.get("cliente_nome_fantasia") ?? "").trim() || undefined,
+    representanteNome: String(formData.get("cliente_representante_nome") ?? "").trim() || undefined,
+    representanteCpf: String(formData.get("cliente_representante_cpf") ?? "").trim() || undefined,
+    representanteRg: String(formData.get("cliente_representante_rg") ?? "").trim() || undefined,
+  };
+
+  const invertParties = formData.get("invert_parties") === "on";
+
   const result = await generateContract({
     supabase,
     userId: user.id,
@@ -559,6 +765,8 @@ export async function createContract(
     titleInput,
     valor,
     clauseId,
+    contratanteOverrides,
+    invertParties,
   });
   if ("error" in result) return result;
 

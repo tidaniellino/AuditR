@@ -36,12 +36,22 @@ export interface ContractPartner {
 export interface ContractPdfInput {
   contractId: string;
   templateName: string;
+  /** Nome real da organização — sempre "Minha Empresa", independente de qual
+   *  papel contratual ela ocupa neste contrato. Usado no timbre e ao lado
+   *  do nome dos sócios que assinam. */
   orgName: string;
+  /** Papel que a organização ocupa neste contrato específico — muda com o
+   *  botão de inverter partes (Prompt 3). Só afeta o rótulo impresso ao
+   *  lado da assinatura dos sócios, não a identidade da organização. */
+  orgRoleLabel?: "Contratante" | "Contratada";
   orgCity: string | null;
   contractType: string | null;
-  clientName: string;
-  clientDocument: string;
-  clientEmail: string | null;
+  contratanteNome: string;
+  contratanteDocumento: string;
+  contratanteEmail?: string | null;
+  contratadaNome: string;
+  contratadaDocumento: string;
+  contratadaEmail?: string | null;
   bodyParagraphs: string[];
   extraClause?: { title: string; content: string } | null;
   partners?: ContractPartner[];
@@ -87,10 +97,12 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
   y -= 10;
 
   drawText("PARTES", bold, 11, rgb(0.07, 0.23, 0.37));
-  drawText(`Contratante: ${input.orgName}`, font, BODY_SIZE);
-  drawText(`Contratado(a): ${input.clientName}`, font, BODY_SIZE);
-  drawText(`CPF/CNPJ: ${input.clientDocument}`, font, BODY_SIZE);
-  if (input.clientEmail) drawText(`E-mail: ${input.clientEmail}`, font, BODY_SIZE);
+  drawText(`Contratante: ${input.contratanteNome}`, font, BODY_SIZE);
+  drawText(`CPF/CNPJ: ${input.contratanteDocumento}`, font, BODY_SIZE);
+  if (input.contratanteEmail) drawText(`E-mail: ${input.contratanteEmail}`, font, BODY_SIZE);
+  drawText(`Contratada: ${input.contratadaNome}`, font, BODY_SIZE);
+  drawText(`CPF/CNPJ: ${input.contratadaDocumento}`, font, BODY_SIZE);
+  if (input.contratadaEmail) drawText(`E-mail: ${input.contratadaEmail}`, font, BODY_SIZE);
   y -= 10;
 
   drawText("TEXTO DO CONTRATO", bold, 11, rgb(0.07, 0.23, 0.37));
@@ -125,7 +137,10 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
       drawText(partner.fullName, bold, 11);
       y -= 4;
       drawText("_______________________________________", font, BODY_SIZE);
-      const roleLine = partner.roleTitle ? `${partner.roleTitle} — ${input.orgName}` : input.orgName;
+      const roleSuffix = input.orgRoleLabel ? ` (${input.orgRoleLabel})` : "";
+      const roleLine = partner.roleTitle
+        ? `${partner.roleTitle}${roleSuffix} — ${input.orgName}`
+        : `${input.orgName}${roleSuffix}`;
       drawText(roleLine, font, 9, rgb(0.42, 0.41, 0.39));
       if (partner.cpf) drawText(`CPF: ${formatCPF(partner.cpf)}`, font, 9, rgb(0.42, 0.41, 0.39));
       drawText(`Assinado eletronicamente · Cód. ${partnerSignatureCode(input.contractId, partner.id)}`, font, 9, rgb(0.42, 0.41, 0.39));

@@ -169,3 +169,34 @@ export async function unlockMemberLogin(memberId: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/empresa");
 }
+
+/** Sócio usado como Contratada quando o contrato exige só um signatário
+ *  (ex.: o placeholder singular {socio_nome}). Só um por organização — o
+ *  índice único no banco garante isso, então limpamos o atual antes de
+ *  marcar o novo. */
+export async function setDefaultSigner(memberId: string): Promise<{ error?: string }> {
+  const { supabase, profile } = await requireOrgManager();
+
+  const { data: member } = await supabase.from("profiles").select("role").eq("id", memberId).single();
+  if (member?.role !== "socio") return { error: "Apenas um perfil Sócio pode ser o signatário padrão." };
+
+  await supabase
+    .from("profiles")
+    .update({ is_default_signer: false })
+    .eq("org_id", profile.org_id)
+    .eq("is_default_signer", true);
+
+  const { error } = await supabase.from("profiles").update({ is_default_signer: true }).eq("id", memberId);
+  if (error) return { error: "Não foi possível definir o signatário padrão." };
+
+  revalidatePath("/empresa");
+  return {};
+}
+
+export async function clearDefaultSigner(memberId: string): Promise<{ error?: string }> {
+  const { supabase } = await requireOrgManager();
+  const { error } = await supabase.from("profiles").update({ is_default_signer: false }).eq("id", memberId);
+  if (error) return { error: "Não foi possível remover o signatário padrão." };
+  revalidatePath("/empresa");
+  return {};
+}

@@ -10,11 +10,11 @@ import { QuickSendContractButton } from "./QuickSendContractButton";
 export default async function ClientesPage() {
   const supabase = await createClient();
 
-  const [{ data: clients }, { data: templates }, { data: clauses }] = await Promise.all([
+  const [{ data: clients }, { data: templates }, { data: clauses }, { data: representatives }] = await Promise.all([
     supabase
       .from("clients")
       .select(
-        "id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, email, telefone, endereco, active, created_at"
+        "id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, email, telefone, endereco, rg, active, created_at"
       )
       .order("created_at", { ascending: false }),
     supabase
@@ -27,7 +27,19 @@ export default async function ClientesPage() {
       .select("id, title")
       .eq("status", "approved")
       .order("title", { ascending: true }),
+    supabase
+      .from("client_representatives")
+      .select("id, client_id, full_name, cpf, rg, is_principal")
+      .order("is_principal", { ascending: false }),
   ]);
+
+  type RepresentativeRow = { id: string; client_id: string; full_name: string; cpf: string; rg: string | null; is_principal: boolean };
+  const representativesByClient = new Map<string, RepresentativeRow[]>();
+  for (const rep of (representatives ?? []) as RepresentativeRow[]) {
+    const list = representativesByClient.get(rep.client_id) ?? [];
+    list.push(rep);
+    representativesByClient.set(rep.client_id, list);
+  }
 
   return (
     <div>
@@ -114,6 +126,8 @@ export default async function ClientesPage() {
                           email: c.email,
                           telefone: c.telefone,
                           endereco: c.endereco as Record<string, string | null> | null,
+                          rg: c.rg,
+                          representatives: representativesByClient.get(c.id) ?? [],
                         }}
                       />
                       <DeleteClientButton clientId={c.id} clientName={c.nome_razao_social} />
