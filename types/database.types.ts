@@ -620,6 +620,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          fields_analyzed_at: string | null
           id: string
           name: string
           org_id: string
@@ -633,6 +634,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          fields_analyzed_at?: string | null
           id?: string
           name: string
           org_id: string
@@ -646,6 +648,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          fields_analyzed_at?: string | null
           id?: string
           name?: string
           org_id?: string
@@ -1210,6 +1213,66 @@ export type Database = {
           },
           {
             foreignKeyName: "template_clauses_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_field_occurrences: {
+        Row: {
+          attribute_key: string | null
+          confidence: string
+          context_snippet: string
+          created_at: string
+          id: string
+          occurrence_index: number
+          org_id: string
+          paragraph_index: number
+          raw_text: string
+          role: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          attribute_key?: string | null
+          confidence?: string
+          context_snippet: string
+          created_at?: string
+          id?: string
+          occurrence_index: number
+          org_id: string
+          paragraph_index: number
+          raw_text: string
+          role: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          attribute_key?: string | null
+          confidence?: string
+          context_snippet?: string
+          created_at?: string
+          id?: string
+          occurrence_index?: number
+          org_id?: string
+          paragraph_index?: number
+          raw_text?: string
+          role?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_field_occurrences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_field_occurrences_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "contract_templates"

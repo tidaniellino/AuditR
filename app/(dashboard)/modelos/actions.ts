@@ -10,6 +10,10 @@ import {
   isAllowedTemplateFile,
   MAX_TEMPLATE_FILE_BYTES,
 } from "@/lib/storage/templates";
+import { extractDocxParagraphs } from "@/lib/documents/docx";
+import { analyzeTemplateFields, type TemplateFieldRole } from "@/lib/documents/template-fields";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 async function requireEditor() {
   const supabase = await createClient();
@@ -24,6 +28,55 @@ async function requireEditor() {
     return { supabase, user, profile, allowed: false as const };
   }
   return { supabase, user, profile, allowed: true as const };
+}
+
+/** Roda a identificação/classificação de campos "[...]" sobre um .docx recém
+ *  enviado e salva o resultado junto ao modelo — não repete a análise a cada
+ *  contrato gerado a partir dele (só quando o arquivo é substituído, ou sob
+ *  pedido explícito via reanalyzeTemplateFields). Silenciosa em qualquer
+ *  falha de parsing (ex.: arquivo .doc binário antigo, que a mesma limitação
+ *  já existente em generateContract também não processa) — a análise é um
+ *  extra, não deve impedir o cadastro do modelo em si. */
+async function runTemplateFieldAnalysis(
+  supabase: SupabaseClient<Database>,
+  orgId: string,
+  templateId: string,
+  file: File
+): Promise<void> {
+  await supabase.from("template_field_occurrences").delete().eq("template_id", templateId);
+
+  if (!file.name.toLowerCase().endsWith(".docx")) {
+    await supabase.from("contract_templates").update({ fields_analyzed_at: null }).eq("id", templateId);
+    return;
+  }
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const paragraphs = extractDocxParagraphs(buffer);
+    const occurrences = analyzeTemplateFields(paragraphs);
+
+    if (occurrences.length > 0) {
+      await supabase.from("template_field_occurrences").insert(
+        occurrences.map((o) => ({
+          org_id: orgId,
+          template_id: templateId,
+          occurrence_index: o.occurrenceIndex,
+          raw_text: o.rawText,
+          paragraph_index: o.paragraphIndex,
+          context_snippet: o.contextSnippet,
+          role: o.role,
+          attribute_key: o.attributeKey,
+          confidence: o.confidence,
+        }))
+      );
+    }
+
+    await supabase.from("contract_templates").update({ fields_analyzed_at: new Date().toISOString() }).eq("id", templateId);
+  } catch {
+    // Arquivo não pôde ser lido como .docx (ex.: corrompido) — não bloqueia
+    // o cadastro do modelo, só deixa a análise de campos vazia.
+    await supabase.from("contract_templates").update({ fields_analyzed_at: null }).eq("id", templateId);
+  }
 }
 
 export interface TemplateFormState {
@@ -84,6 +137,8 @@ export async function createTemplate(
     })
     .eq("id", template.id);
 
+  await runTemplateFieldAnalysis(supabase, profile.org_id, template.id, file);
+
   redirect(`/modelos/${template.id}/editar`);
 }
 
@@ -141,6 +196,8 @@ export async function updateTemplate(
       })
       .eq("id", templateId);
 
+    await runTemplateFieldAnalysis(supabase, profile.org_id, templateId, file as File);
+
     if (existing?.source_file_path) {
       await deleteTemplateFile(supabase, existing.source_file_path);
     }
@@ -192,4 +249,66 @@ export async function deleteTemplate(formData: FormData) {
 
   revalidatePath("/modelos");
   redirect(`/modelos?sucesso=${encodeURIComponent(`Modelo "${template?.name ?? ""}" excluído.`)}`);
+}
+
+export interface FieldAnalysisState {
+  error?: string;
+  success?: string;
+}
+
+/** Roda a análise de novo sobre o arquivo já salvo do modelo — útil se o
+ *  usuário quiser refazer as sugestões automáticas do zero, descartando
+ *  qualquer correção manual feita antes. */
+export async function reanalyzeTemplateFields(templateId: string): Promise<FieldAnalysisState> {
+  const { supabase, profile, allowed } = await requireEditor();
+  if (!allowed) return { error: "Apenas Sócio pode reanalisar modelos." };
+
+  const { data: template } = await supabase
+    .from("contract_templates")
+    .select("source_file_path, source_file_name")
+    .eq("id", templateId)
+    .single();
+
+  if (!template?.source_file_path) return { error: "Este modelo não tem arquivo cadastrado." };
+
+  const { data: fileBlob, error: downloadError } = await supabase.storage
+    .from("contract-templates")
+    .download(template.source_file_path);
+
+  if (downloadError || !fileBlob) return { error: "Não foi possível ler o arquivo do modelo." };
+
+  const file = new File([fileBlob], template.source_file_name ?? "modelo.docx");
+  await runTemplateFieldAnalysis(supabase, profile.org_id, templateId, file);
+
+  revalidatePath(`/modelos/${templateId}/editar`);
+  return { success: "Campos reanalisados." };
+}
+
+export interface FieldClassificationInput {
+  id: string;
+  role: TemplateFieldRole;
+  attributeKey: string | null;
+}
+
+/** Salva as correções manuais feitas na tela de revisão — a classificação
+ *  final (automática + ajustes) fica gravada no modelo, sem precisar
+ *  repetir a análise a cada contrato gerado a partir dele. */
+export async function saveTemplateFieldClassification(
+  templateId: string,
+  occurrences: FieldClassificationInput[]
+): Promise<FieldAnalysisState> {
+  const { supabase, allowed } = await requireEditor();
+  if (!allowed) return { error: "Apenas Sócio pode editar a classificação de campos." };
+
+  for (const occurrence of occurrences) {
+    const { error } = await supabase
+      .from("template_field_occurrences")
+      .update({ role: occurrence.role, attribute_key: occurrence.attributeKey })
+      .eq("id", occurrence.id)
+      .eq("template_id", templateId);
+    if (error) return { error: "Não foi possível salvar a classificação dos campos." };
+  }
+
+  revalidatePath(`/modelos/${templateId}/editar`);
+  return { success: "Classificação dos campos salva." };
 }
