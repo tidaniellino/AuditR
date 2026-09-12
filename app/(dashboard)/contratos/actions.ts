@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { mergeDocxTemplate, extractDocxParagraphs } from "@/lib/documents/docx";
 import { fillBracketFields } from "@/lib/documents/template-field-fill";
+import { analyzeTemplateFields } from "@/lib/documents/template-fields";
 import { buildContractPdf, type ContractPartner } from "@/lib/documents/pdf";
 import { generateSigningCode, hashSigningCode, SIGNING_CODE_TTL_HOURS } from "@/lib/signing/codes";
 import { sendSigningEmail } from "@/lib/email/resend";
@@ -127,6 +128,8 @@ async function generateContract({
   if (downloadError || !templateFile) {
     return { error: "Não foi possível ler o arquivo do modelo. Tente novamente." };
   }
+
+  const rawTemplateBuffer = Buffer.from(await templateFile.arrayBuffer());
 
   const title = titleInput || client.nome_razao_social;
   const endereco = client.endereco as Record<string, string | null> | null;
@@ -350,8 +353,44 @@ async function generateContract({
     }
   };
 
+  // Modelo ainda nunca analisado (ex.: cadastrado antes desta funcionalidade
+  // existir, ou o botão "Reanalisar" nunca foi usado) — analisa agora, na
+  // hora de gerar, em vez de simplesmente pular o preenchimento em silêncio,
+  // e já persiste pra não repetir a análise no próximo contrato.
+  let occurrencesForFill = fieldOccurrences ?? [];
+  if (occurrencesForFill.length === 0 && !template.fields_analyzed_at) {
+    try {
+      const freshParagraphs = extractDocxParagraphs(rawTemplateBuffer);
+      const freshOccurrences = analyzeTemplateFields(freshParagraphs);
+      if (freshOccurrences.length > 0) {
+        await supabase.from("template_field_occurrences").insert(
+          freshOccurrences.map((o) => ({
+            org_id: profile.org_id,
+            template_id: templateId,
+            occurrence_index: o.occurrenceIndex,
+            raw_text: o.rawText,
+            paragraph_index: o.paragraphIndex,
+            context_snippet: o.contextSnippet,
+            role: o.role,
+            attribute_key: o.attributeKey,
+            confidence: o.confidence,
+          }))
+        );
+      }
+      await supabase.from("contract_templates").update({ fields_analyzed_at: new Date().toISOString() }).eq("id", templateId);
+      occurrencesForFill = freshOccurrences.map((o) => ({
+        occurrence_index: o.occurrenceIndex,
+        role: o.role,
+        attribute_key: o.attributeKey,
+      }));
+    } catch {
+      // Não foi possível analisar agora (ex.: arquivo corrompido) — segue
+      // sem preencher os campos "[...]", como já era o comportamento.
+    }
+  }
+
   const bracketValuesByOccurrence = new Map<number, string>();
-  for (const occurrence of fieldOccurrences ?? []) {
+  for (const occurrence of occurrencesForFill) {
     if (occurrence.role === "especifico") continue;
     const party = occurrence.role === "contratante" ? contratanteParty : contratadaParty;
     const value = partyAttributeValue(party, occurrence.attribute_key);
@@ -360,7 +399,6 @@ async function generateContract({
 
   let mergedDocx: Buffer;
   try {
-    const rawTemplateBuffer = Buffer.from(await templateFile.arrayBuffer());
     const withBracketFieldsFilled =
       bracketValuesByOccurrence.size > 0
         ? fillBracketFields(rawTemplateBuffer, bracketValuesByOccurrence)
