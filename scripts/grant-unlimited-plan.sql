@@ -6,6 +6,12 @@
 -- Como usar: troque o e-mail abaixo se precisar aplicar a outra conta, e
 -- rode este script no SQL editor do Supabase (ou via `apply_migration`/
 -- `execute_sql` do MCP). É idempotente — pode rodar de novo sem problema.
+--
+-- Só um script assim (rodado direto no banco, fora da API do PostgREST) ou
+-- o webhook da Stripe conseguem mudar organizations.plan — a migration
+-- 20260912000004_guard_organization_billing_fields.sql bloqueia qualquer
+-- outra tentativa (ex.: um Sócio chamando a API do Supabase diretamente
+-- pra tentar setar a própria organização como "interno").
 -- ============================================================================
 
 update public.organizations
