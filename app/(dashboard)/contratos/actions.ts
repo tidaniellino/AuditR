@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { mergeDocxTemplate, extractDocxParagraphs } from "@/lib/documents/docx";
+import { fillBracketFields } from "@/lib/documents/template-field-fill";
 import { buildContractPdf, type ContractPartner } from "@/lib/documents/pdf";
 import { generateSigningCode, hashSigningCode, SIGNING_CODE_TTL_HOURS } from "@/lib/signing/codes";
 import { sendSigningEmail } from "@/lib/email/resend";
@@ -136,8 +137,14 @@ async function generateContract({
       (endereco.uf ? `/${endereco.uf}` : "")
     : "";
 
-  const [{ data: org }, { data: partners }, { data: defaultSigner }, { data: principalRepresentative }, extraClause] =
-    await Promise.all([
+  const [
+    { data: org },
+    { data: partners },
+    { data: defaultSigner },
+    { data: principalRepresentative },
+    { data: fieldOccurrences },
+    extraClause,
+  ] = await Promise.all([
     supabase.from("organizations").select("*").eq("id", profile.org_id).single(),
     supabase
       .from("profiles")
@@ -162,6 +169,11 @@ async function generateContract({
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("template_field_occurrences")
+      .select("occurrence_index, role, attribute_key")
+      .eq("template_id", templateId)
+      .order("occurrence_index", { ascending: true }),
     loadExtraClause(supabase, profile.org_id, clauseId ?? null),
   ]);
 
@@ -307,9 +319,53 @@ async function generateContract({
     },
   };
 
+  // Resolve os campos "[TEXTO]" classificados na análise do modelo (ver
+  // lib/documents/template-fields.ts) para os valores reais de Contratante/
+  // Contratada — campo específico do contrato ou sem atributo mapeado fica
+  // como estava, para preenchimento manual.
+  const partyAttributeValue = (party: typeof contratanteParty, attributeKey: string | null): string | undefined => {
+    switch (attributeKey) {
+      case "nome":
+        return party.nome;
+      case "nome_fantasia":
+        return party.nomeFantasia;
+      case "documento":
+        return party.documento;
+      case "endereco":
+        return party.endereco;
+      case "rg":
+        return party.rg;
+      case "telefone":
+        return party.telefone;
+      case "email":
+        return party.email;
+      case "representante_nome":
+        return party.representanteNome;
+      case "representante_cpf":
+        return party.representanteCpf;
+      case "representante_rg":
+        return party.representanteRg;
+      default:
+        return undefined;
+    }
+  };
+
+  const bracketValuesByOccurrence = new Map<number, string>();
+  for (const occurrence of fieldOccurrences ?? []) {
+    if (occurrence.role === "especifico") continue;
+    const party = occurrence.role === "contratante" ? contratanteParty : contratadaParty;
+    const value = partyAttributeValue(party, occurrence.attribute_key);
+    if (value !== undefined) bracketValuesByOccurrence.set(occurrence.occurrence_index, value);
+  }
+
   let mergedDocx: Buffer;
   try {
-    mergedDocx = mergeDocxTemplate(await templateFile.arrayBuffer(), mergeData);
+    const rawTemplateBuffer = Buffer.from(await templateFile.arrayBuffer());
+    const withBracketFieldsFilled =
+      bracketValuesByOccurrence.size > 0
+        ? fillBracketFields(rawTemplateBuffer, bracketValuesByOccurrence)
+        : rawTemplateBuffer;
+    mergedDocx = mergeDocxTemplate(withBracketFieldsFilled, mergeData);
   } catch {
     return {
       error: "Não foi possível mesclar o arquivo-modelo. Verifique se os placeholders estão no formato {chave}.",
