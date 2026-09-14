@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
 
   const { data: contract } = await supabase
     .from("contracts")
-    .select("id, title, status, org_id, client_id, generated_pdf_path, signed_document_url")
+    .select("id, title, status, org_id, client_id, generated_pdf_path, signed_document_url, party_data")
     .eq("id", contract_id)
     .single();
 
@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
 
     const { data: client } = await supabase
       .from("clients")
-      .select("nome_razao_social, cpf_cnpj, telefone")
+      .select("nome_razao_social, cpf_cnpj, tipo_pessoa, telefone")
       .eq("id", contract.client_id)
       .single();
 
@@ -292,6 +292,28 @@ Deno.serve(async (req) => {
 
     const geolocation = await lookupGeolocation(ip ?? null);
 
+    // Rótulo do documento pelo tipo REAL de cada parte (PF -> CPF, PJ ->
+    // CNPJ), não fixo por posição — cliente já tem tipo_pessoa no cadastro;
+    // pra Minha Empresa (organizations não tem essa coluna) infere pela
+    // quantidade de dígitos do CNPJ, mesma convenção usada no resto do app.
+    const clientDocLabel = client?.tipo_pessoa === "PF" ? "CPF" : "CNPJ";
+    const orgCnpjDigits = onlyDigits(org?.cnpj ?? "");
+    const orgDocLabel = orgCnpjDigits.length === 11 ? "CPF" : "CNPJ";
+
+    // Papel de cada parte NESTE contrato — respeita o botão de inverter
+    // partes (contracts.party_data); contratos gerados antes desse campo
+    // existir caem no padrão original (cliente = Contratante).
+    const partyData = (contract.party_data ?? null) as { contratante?: { role?: string } } | null;
+    const clientIsContratante = partyData?.contratante?.role !== "organizacao";
+    const clientRoleLabel = clientIsContratante ? "Contratante" : "Contratada";
+    const orgRoleLabel = clientIsContratante ? "Contratada" : "Contratante";
+
+    // Código curto de verificação da assinatura do cliente — mesmo
+    // mecanismo (hash determinístico) já usado pros sócios em
+    // lib/documents/pdf.ts (partnerSignatureCode), pra ficar no mesmo
+    // padrão visual.
+    const clientSignatureCode = (await sha256Hex(`${contract_id}:${signatureCode.id}`)).slice(0, 12).toUpperCase();
+
     const pdfDoc = await PDFDocument.load(originalBytes);
     const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -300,21 +322,61 @@ Deno.serve(async (req) => {
     const page = pdfDoc.addPage();
     const { height } = page.getSize();
     const margin = 56;
-    const labelWidth = 150;
+    // Alguns rótulos novos são mais longos que os originais ("CNPJ:") — ex.:
+    // "Contratante (Minha Empresa):" — por isso mais largo que antes.
+    const labelWidth = 210;
     let y = height - margin;
+
+    // Bloco "ASSINATURAS" no mesmo formato visual usado pros sócios no
+    // documento gerado (ver lib/documents/pdf.ts) — antes só a Minha
+    // Empresa aparecia nesse formato; a confirmação do cliente ficava numa
+    // página com layout totalmente diferente, sem ligação visual com a
+    // "assinatura" dos sócios.
+    const timestampBR = signedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) + " BRT";
+    page.drawText("ASSINATURAS", { x: margin, y, size: 11, font: bold, color: rgb(0.07, 0.23, 0.37) });
+    y -= 24;
+    page.drawText(timestampBR, { x: margin, y, size: 9, font: regular, color: rgb(0.42, 0.41, 0.39) });
+    y -= 14;
+    page.drawText(signatureCode.signer_name, { x: margin, y, size: 11, font: bold, color: rgb(0.11, 0.11, 0.13) });
+    y -= 15;
+    page.drawText("_______________________________________", {
+      x: margin,
+      y,
+      size: 10.5,
+      font: regular,
+      color: rgb(0.11, 0.11, 0.13),
+    });
+    y -= 13;
+    page.drawText(`${clientRoleLabel} — ${formatCpfCnpj(client?.cpf_cnpj ?? null)}`, {
+      x: margin,
+      y,
+      size: 9,
+      font: regular,
+      color: rgb(0.42, 0.41, 0.39),
+    });
+    y -= 13;
+    page.drawText(`Assinado eletronicamente · Cód. ${clientSignatureCode}`, {
+      x: margin,
+      y,
+      size: 9,
+      font: regular,
+      color: rgb(0.42, 0.41, 0.39),
+    });
+    y -= 30;
 
     page.drawText("PÁGINA DE ASSINATURA ELETRÔNICA", { x: margin, y, size: 15, font: bold, color: rgb(0.07, 0.23, 0.37) });
     y -= 28;
 
-    const timestampBR = signedAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) + " BRT";
     const rows: [string, string][] = [
       ["Documento:", contract.title],
-      ["Contratante:", org?.name ?? "—"],
-      ["CNPJ:", formatCpfCnpj(org?.cnpj ?? null)],
       ["Signatário:", signatureCode.signer_name],
-      ["CPF:", formatCpfCnpj(client?.cpf_cnpj ?? null)],
+      ["Papel no contrato:", clientRoleLabel],
+      [`${clientDocLabel} do signatário:`, formatCpfCnpj(client?.cpf_cnpj ?? null)],
       ["E-mail:", signatureCode.signer_email],
       ["WhatsApp:", formatWhatsApp(client?.telefone ?? null)],
+      [`${orgRoleLabel} (Minha Empresa):`, org?.name ?? "—"],
+      [`${orgDocLabel} de Minha Empresa:`, formatCpfCnpj(org?.cnpj ?? null)],
+      ["Código de verificação:", clientSignatureCode],
     ];
 
     for (const [label, value] of rows) {

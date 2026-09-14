@@ -80,6 +80,12 @@ export function EditTemplateForm({
         />
       </Field>
 
+      <p className="-mt-2 rounded-card border border-edge bg-mist px-3.5 py-2.5 text-xs text-muted">
+        Como a assinatura aqui é eletrônica, remova do arquivo antes de subir qualquer bloco de
+        "TESTEMUNHAS" e linhas de assinatura manual (traços) — o sistema já gera automaticamente o
+        registro de assinatura de cada parte.
+      </p>
+
       <SubmitButton pendingLabel="Salvando..." className="self-start">
         Salvar alterações
       </SubmitButton>

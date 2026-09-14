@@ -504,22 +504,19 @@ async function generateContract({
   if (insertError || !contract) return { error: "Não foi possível criar o contrato." };
 
   const paragraphs = extractDocxParagraphs(mergedDocx);
+  const otherParty = invertParties
+    ? { nome: contratadaParty.nome, documento: contratadaParty.documento, role: "Contratada" as const }
+    : { nome: contratanteParty.nome, documento: contratanteParty.documento, role: "Contratante" as const };
+
   const pdfBytes = await buildContractPdf({
     contractId: contract.id,
-    templateName: template.name,
     orgName: org?.name ?? "",
     orgRoleLabel: invertParties ? "Contratante" : "Contratada",
     orgCity,
-    contractType: template.contract_type,
-    contratanteNome: contratanteParty.nome,
-    contratanteDocumento: contratanteParty.documento,
-    contratanteEmail: contratanteParty.email || null,
-    contratadaNome: contratadaParty.nome,
-    contratadaDocumento: contratadaParty.documento,
-    contratadaEmail: contratadaParty.email || null,
     bodyParagraphs: paragraphs,
     extraClause,
     partners: contractPartners,
+    otherParty,
   });
 
   const basePath = `${profile.org_id}/${contract.id}`;
@@ -668,19 +665,16 @@ async function generateContractFromUpload({
   const paragraphs = extractDocxParagraphs(mergedDocx);
   const pdfBytes = await buildContractPdf({
     contractId: contract.id,
-    templateName: "Contrato avulso (upload)",
     orgName: org?.name ?? "",
     orgRoleLabel: "Contratada",
     orgCity,
-    contractType: null,
-    contratanteNome: client.nome_razao_social,
-    contratanteDocumento: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
-    contratanteEmail: client.email,
-    contratadaNome: org?.name ?? "",
-    contratadaDocumento: org?.cnpj ?? "",
-    contratadaEmail: org?.email ?? null,
     bodyParagraphs: paragraphs,
     partners: contractPartners,
+    otherParty: {
+      nome: client.nome_razao_social,
+      documento: formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa),
+      role: "Contratante",
+    },
   });
 
   const basePath = `${profile.org_id}/${contract.id}`;

@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
 import { Pagination } from "@/components/ui/Pagination";
 import { STATUS_DISPLAY, resolveDisplayStatus, type ContractStatus } from "@/lib/contracts/status";
+import { getContractFileSignedUrl } from "@/lib/storage/contracts";
+import { DownloadIcon } from "@/components/dashboard/icons";
 import { RelatorioModal } from "./RelatorioModal";
 
 const PAGE_SIZE = 10;
@@ -21,13 +23,26 @@ export default async function ContratosPage({
   const { data: contracts, count } = await supabase
     .from("contracts")
     .select(
-      "id, title, status, created_at, clients(nome_razao_social), contract_templates(name), signature_codes(expires_at, created_at), profiles!contracts_created_by_fkey(full_name)",
+      "id, title, status, created_at, generated_pdf_path, signed_document_url, clients(nome_razao_social), contract_templates(name), signature_codes(expires_at, created_at), profiles!contracts_created_by_fkey(full_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false })
     .range(from, to);
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+
+  // Link de download direto na listagem — mesma lógica da tela de detalhe:
+  // depois de assinado, baixa a versão final (com o certificado); antes
+  // disso, baixa o documento atual, ainda pendente de assinatura.
+  const downloadUrls = new Map(
+    await Promise.all(
+      (contracts ?? []).map(async (c) => {
+        const path = c.status === "assinado" && c.signed_document_url ? c.signed_document_url : c.generated_pdf_path;
+        const url = path ? await getContractFileSignedUrl(supabase, path) : null;
+        return [c.id, url] as const;
+      })
+    )
+  );
 
   return (
     <div>
@@ -70,6 +85,7 @@ export default async function ContratosPage({
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Gerado por</th>
                 <th className="px-4 py-3 font-medium">Criado em</th>
+                <th className="px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -101,6 +117,20 @@ export default async function ContratosPage({
                     </td>
                     <td className="px-4 py-3 text-muted">{creator?.full_name ?? "—"}</td>
                     <td className="px-4 py-3 text-muted">{new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
+                    <td className="px-4 py-3">
+                      {downloadUrls.get(c.id) ? (
+                        <a
+                          href={downloadUrls.get(c.id)!}
+                          aria-label={c.status === "assinado" ? "Baixar contrato assinado" : "Baixar contrato (pendente de assinatura)"}
+                          title={c.status === "assinado" ? "Baixar contrato assinado" : "Baixar contrato — pendente de assinatura"}
+                          className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-mist hover:text-brand-via"
+                        >
+                          <DownloadIcon />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

@@ -177,6 +177,16 @@ export function CheckIcon({ className }: IconProps) {
   );
 }
 
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <svg {...small} className={className} stroke="currentColor" aria-hidden="true">
+      <path d="M12 3.5v11.5" strokeLinecap="round" />
+      <path d="M7.5 11L12 15.5 16.5 11" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 17.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ContractsIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
