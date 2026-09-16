@@ -24,7 +24,7 @@ export function RelatorioModal() {
         description="Exporte os contratos gerados em um período, em CSV ou XLS."
       >
         <form method="get" action="/contratos/relatorio" target="_blank" className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="De" htmlFor="relatorio_de" hint="Opcional">
               <input id="relatorio_de" name="de" type="date" className={inputClass} />
             </Field>

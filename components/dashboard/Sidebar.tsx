@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SidebarNav } from "./SidebarNav";
-import { CollapseIcon, ExpandIcon, LogoutIcon } from "./icons";
+import { CollapseIcon, ExpandIcon, LogoutIcon, MenuIcon, CloseIcon } from "./icons";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import type { UserRole } from "@/lib/auth/permissions";
 
@@ -25,10 +26,16 @@ export function Sidebar({
   logoutAction: () => Promise<void>;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
   }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   function toggle() {
     const next = !collapsed;
@@ -36,30 +43,61 @@ export function Sidebar({
     localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
   }
 
+  const effectiveCollapsed = collapsed && !mobileOpen;
+
   return (
-    <aside
-      className={`relative flex shrink-0 flex-col justify-between bg-brand-from px-4 py-6 transition-[width] duration-200 ${
-        collapsed ? "w-[4.5rem] px-2" : "w-64"
-      }`}
-    >
+    <>
       <button
         type="button"
-        onClick={toggle}
-        aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-        title={collapsed ? "Expandir menu" : "Recolher menu"}
-        className="absolute -right-3 top-8 flex size-6 items-center justify-center rounded-full border border-white/10 bg-brand-from text-ink-400 shadow-md transition-colors hover:text-white"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Abrir menu"
+        title="Abrir menu"
+        className="fixed left-4 top-4 z-30 flex size-9 items-center justify-center rounded-card bg-brand-from text-white shadow-md md:hidden"
       >
-        {collapsed ? <ExpandIcon className="size-3.5" /> : <CollapseIcon className="size-3.5" />}
+        <MenuIcon className="size-5" />
       </button>
+
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col justify-between bg-brand-from px-4 py-6 transition-transform duration-200 md:relative md:z-auto md:translate-x-0 md:transition-[width] ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } ${collapsed ? "md:w-[4.5rem] md:px-2" : "md:w-64"}`}
+      >
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Fechar menu"
+          title="Fechar menu"
+          className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full text-ink-400 hover:text-white md:hidden"
+        >
+          <CloseIcon className="size-4" />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          title={collapsed ? "Expandir menu" : "Recolher menu"}
+          className="absolute -right-3 top-8 hidden size-6 items-center justify-center rounded-full border border-white/10 bg-brand-from text-ink-400 shadow-md transition-colors hover:text-white md:flex"
+        >
+          {collapsed ? <ExpandIcon className="size-3.5" /> : <CollapseIcon className="size-3.5" />}
+        </button>
 
       <div>
         <Link
           href="/painel"
-          className={`mb-8 flex items-center gap-2.5 ${collapsed ? "justify-center px-0" : "px-2"}`}
+          className={`mb-8 flex items-center gap-2.5 ${effectiveCollapsed ? "justify-center px-0" : "px-2"}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/imagemmenu.png" alt="AuditR" className="h-9 w-9 shrink-0" />
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <div>
               <p className="font-display text-base leading-none text-white">AuditR</p>
               <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">Contratos</p>
@@ -67,13 +105,13 @@ export function Sidebar({
           )}
         </Link>
 
-        <SidebarNav role={role} collapsed={collapsed} />
+        <SidebarNav role={role} collapsed={effectiveCollapsed} />
       </div>
 
       <div>
         <div className="h-px bg-white/10" />
-        <div className={`flex items-center pt-3 ${collapsed ? "justify-center" : "justify-between px-2"}`}>
-          {!collapsed && (
+        <div className={`flex items-center pt-3 ${effectiveCollapsed ? "justify-center" : "justify-between px-2"}`}>
+          {!effectiveCollapsed && (
             <Link href="/perfil" className="flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 font-mono text-xs text-white">
                 {avatarUrl ? (
@@ -89,10 +127,10 @@ export function Sidebar({
               </div>
             </Link>
           )}
-          <ThemeToggle collapsed={collapsed} />
+          <ThemeToggle collapsed={effectiveCollapsed} />
         </div>
 
-        {collapsed && (
+        {effectiveCollapsed && (
           <Link
             href="/perfil"
             aria-label="Meu perfil"
@@ -110,17 +148,18 @@ export function Sidebar({
           </Link>
         )}
 
-        <form action={logoutAction} className={collapsed ? "mt-3 flex justify-center" : "px-2 pt-3"}>
+        <form action={logoutAction} className={effectiveCollapsed ? "mt-3 flex justify-center" : "px-2 pt-3"}>
           <button
             type="submit"
             title="Sair"
             className="flex items-center gap-1.5 text-xs text-ink-400 hover:text-white"
           >
             <LogoutIcon className="size-3.5" />
-            {!collapsed && "Sair"}
+            {!effectiveCollapsed && "Sair"}
           </button>
         </form>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -34,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         logoutAction={logout}
       />
 
-      <main className="flex-1 bg-mist px-10 py-10">
+      <main className="min-w-0 flex-1 bg-mist px-4 pb-6 pt-20 sm:px-6 sm:pt-10 md:px-10 md:py-10">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
     </div>

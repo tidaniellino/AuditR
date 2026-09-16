@@ -34,7 +34,7 @@ export function ClauseMetaForm({
         <input id="title" name="title" required defaultValue={title} className={inputClass} />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Categoria" htmlFor="category_id">
           <select id="category_id" name="category_id" className={inputClass} defaultValue={categoryId ?? ""}>
             <option value="">— Selecionar —</option>
@@ -51,7 +51,7 @@ export function ClauseMetaForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Tipo da cláusula" htmlFor="clause_type">
           <input id="clause_type" name="clause_type" defaultValue={clauseType ?? ""} className={inputClass} />
         </Field>

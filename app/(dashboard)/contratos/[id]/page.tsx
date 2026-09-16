@@ -68,7 +68,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
         </span>
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-3 rounded-card border border-edge bg-card px-6 py-5 text-sm shadow-sm shadow-ink-900/5">
+      <dl className="mt-6 grid grid-cols-1 gap-x-4 gap-y-3 rounded-card border border-edge bg-card px-6 py-5 text-sm shadow-sm shadow-ink-900/5 sm:grid-cols-2">
         <dt className="text-muted">Cliente</dt>
         <dd className="text-ink_text">{client?.nome_razao_social ?? "—"}</dd>
 
@@ -131,7 +131,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
       {contract.status === "assinado" && (
         <section className="mt-6 rounded-card border border-edge bg-card p-6 shadow-sm shadow-ink-900/5">
           <h2 className="text-sm font-medium text-ink_text">Certificado de assinatura eletrônica</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+          <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2.5 text-sm sm:grid-cols-2">
             <dt className="text-muted">Autenticação</dt>
             <dd className="text-ink_text">Assinatura eletrônica via OTP-Email (MP 2.200-2/2001)</dd>
 

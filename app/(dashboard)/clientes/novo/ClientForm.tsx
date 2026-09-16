@@ -243,7 +243,7 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
         </Field>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="E-mail" htmlFor="email">
           <input id="email" name="email" type="email" defaultValue={client?.email ?? ""} className={inputClass} />
         </Field>
@@ -292,7 +292,7 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
                 onChange={(e) => updateRepresentative(index, { full_name: e.target.value })}
                 className={inputClass}
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   placeholder="CPF"
                   value={formatCpfCnpj(rep.cpf, "PF")}
@@ -325,7 +325,7 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
         <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
           Endereço
         </legend>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <input
             name="logradouro"
             placeholder="Logradouro"
@@ -334,7 +334,7 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
           />
           <input name="numero" placeholder="Número" defaultValue={client?.endereco?.numero ?? ""} className={inputClass} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <input
             name="complemento"
             placeholder="Complemento"
@@ -343,7 +343,7 @@ export function ClientForm({ client }: { client?: ClientRecord }) {
           />
           <input name="bairro" placeholder="Bairro" defaultValue={client?.endereco?.bairro ?? ""} className={inputClass} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <input
             name="municipio"
             placeholder="Município"

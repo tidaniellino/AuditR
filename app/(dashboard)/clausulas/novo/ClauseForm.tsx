@@ -18,7 +18,7 @@ export function ClauseForm({ categories }: { categories: { id: string; name: str
         <input id="title" name="title" required className={inputClass} />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Categoria" htmlFor="category_id" hint="Deixe em branco para criar uma nova ao lado">
           <select id="category_id" name="category_id" className={inputClass} defaultValue="">
             <option value="">— Selecionar —</option>
@@ -35,7 +35,7 @@ export function ClauseForm({ categories }: { categories: { id: string; name: str
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           label="Tipo da cláusula"
           htmlFor="clause_type"

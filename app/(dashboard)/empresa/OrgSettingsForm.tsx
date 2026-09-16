@@ -30,7 +30,7 @@ export function OrgSettingsForm({ org }: { org: OrgRecord }) {
         <input id="cnpj" name="cnpj" defaultValue={org.cnpj ?? ""} className={inputClass} />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="E-mail" htmlFor="email">
           <input id="email" name="email" type="email" defaultValue={org.email ?? ""} className={inputClass} />
         </Field>
@@ -41,7 +41,7 @@ export function OrgSettingsForm({ org }: { org: OrgRecord }) {
 
       <fieldset className="flex flex-col gap-3 rounded-card border border-edge p-4">
         <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Endereço</legend>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <input
             name="logradouro"
             placeholder="Logradouro"
@@ -50,7 +50,7 @@ export function OrgSettingsForm({ org }: { org: OrgRecord }) {
           />
           <input name="numero" placeholder="Número" defaultValue={org.endereco?.numero ?? ""} className={inputClass} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <input
             name="complemento"
             placeholder="Complemento"
@@ -59,7 +59,7 @@ export function OrgSettingsForm({ org }: { org: OrgRecord }) {
           />
           <input name="bairro" placeholder="Bairro" defaultValue={org.endereco?.bairro ?? ""} className={inputClass} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <input
             name="municipio"
             placeholder="Município"

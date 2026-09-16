@@ -70,6 +70,7 @@ export default async function EmpresaPage() {
         </div>
 
         <div className="overflow-hidden rounded-card border border-edge bg-card shadow-sm shadow-ink-900/5">
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-edge bg-mist text-xs uppercase tracking-wide text-muted">
@@ -116,6 +117,7 @@ export default async function EmpresaPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
         <p className="mt-2 text-xs text-muted">
           Perfis disponíveis: {Object.values(ROLE_LABELS).join(", ")}.

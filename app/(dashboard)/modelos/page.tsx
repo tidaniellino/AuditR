@@ -74,6 +74,7 @@ export default async function ModelosPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-card border border-edge bg-card shadow-sm shadow-ink-900/5">
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-edge bg-mist text-xs uppercase tracking-wide text-muted">
@@ -159,6 +160,7 @@ export default async function ModelosPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

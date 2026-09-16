@@ -37,7 +37,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
         </p>
       )}
 
-      <dl className="mt-8 grid grid-cols-2 gap-x-4 gap-y-4 rounded-card border border-edge bg-card px-6 py-5 text-sm shadow-sm shadow-ink-900/5">
+      <dl className="mt-8 grid grid-cols-1 gap-x-4 gap-y-4 rounded-card border border-edge bg-card px-6 py-5 text-sm shadow-sm shadow-ink-900/5 sm:grid-cols-2">
         <dt className="text-muted">{client.tipo_pessoa === "PF" ? "CPF" : "CNPJ"}</dt>
         <dd className="font-mono text-ink_text">{formatCpfCnpj(client.cpf_cnpj, client.tipo_pessoa)}</dd>
 
