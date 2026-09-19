@@ -3,11 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageOrg, ROLE_LABELS, type UserRole } from "@/lib/auth/permissions";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
 import { OrgSettingsForm } from "./OrgSettingsForm";
+import { LetterheadForm } from "./LetterheadForm";
 import { CreateMemberModal } from "./CreateMemberModal";
 import { MemberRoleSelect } from "./MemberRoleSelect";
 import { MemberActiveToggle } from "./MemberActiveToggle";
 import { UnlockMemberButton } from "./UnlockMemberButton";
 import { DefaultSignerToggle } from "./DefaultSignerToggle";
+import { getLetterheadFileSignedUrl } from "@/lib/storage/letterhead";
 
 export default async function EmpresaPage() {
   const supabase = await createClient();
@@ -31,6 +33,10 @@ export default async function EmpresaPage() {
 
   if (!org) redirect("/acesso-negado");
 
+  const letterheadUrl = org.letterhead_file_path
+    ? await getLetterheadFileSignedUrl(supabase, org.letterhead_file_path)
+    : null;
+
   return (
     <div className="flex flex-col gap-10 pb-10">
       <SearchParamsToast />
@@ -53,6 +59,19 @@ export default async function EmpresaPage() {
             telefone: org.telefone,
             endereco: org.endereco as Record<string, string | null> | null,
           }}
+        />
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-ink_text">Papel timbrado</h2>
+        <p className="mb-4 max-w-lg text-xs text-muted">
+          Envie um arquivo .docx com o cabeçalho e rodapé timbrados da empresa. Ao gerar um contrato, é
+          possível optar por usar esse papel timbrado como formatação do PDF.
+        </p>
+        <LetterheadForm
+          currentFileName={org.letterhead_file_name}
+          currentFileSize={org.letterhead_file_size}
+          currentFileUrl={letterheadUrl}
         />
       </section>
 

@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
-import { mergeDocxTemplate, extractDocxParagraphs } from "@/lib/documents/docx";
+import { mergeDocxTemplate, extractDocxParagraphs, extractDocxLetterhead } from "@/lib/documents/docx";
 import { fillBracketFields } from "@/lib/documents/template-field-fill";
 import { analyzeTemplateFields } from "@/lib/documents/template-fields";
-import { buildContractPdf, type ContractPartner } from "@/lib/documents/pdf";
+import { buildContractPdf, type ContractPartner, type ContractLetterhead } from "@/lib/documents/pdf";
 import { generateSigningCode, hashSigningCode, SIGNING_CODE_TTL_HOURS } from "@/lib/signing/codes";
 import { sendSigningEmail } from "@/lib/email/resend";
 import { isWhatsAppConfigured, sendSigningWhatsAppMessage } from "@/lib/whatsapp/business";
@@ -83,6 +83,7 @@ async function generateContract({
   clauseId,
   contratanteOverrides,
   invertParties,
+  useLetterhead,
 }: {
   supabase: SupabaseClient;
   userId: string;
@@ -97,6 +98,9 @@ async function generateContract({
    *  Empresa=Contratada) só para este contrato — não afeta o modelo nem
    *  outros contratos. */
   invertParties?: boolean;
+  /** Usa o papel timbrado da organização (cabeçalho/rodapé) como formatação
+   *  visual do PDF gerado, se um estiver cadastrado em Minha Empresa. */
+  useLetterhead?: boolean;
 }): Promise<{ contractId: string } | { error: string }> {
   const usage = await getContractUsage(supabase, profile.org_id);
   if (usage.blocked) {
@@ -508,6 +512,17 @@ async function generateContract({
     ? { nome: contratadaParty.nome, documento: contratadaParty.documento, role: "Contratada" as const }
     : { nome: contratanteParty.nome, documento: contratanteParty.documento, role: "Contratante" as const };
 
+  let letterhead: ContractLetterhead | undefined;
+  if (useLetterhead && org?.letterhead_file_path) {
+    const { data: letterheadFile } = await supabase.storage
+      .from("org-letterheads")
+      .download(org.letterhead_file_path);
+    if (letterheadFile) {
+      const letterheadBuffer = Buffer.from(await letterheadFile.arrayBuffer());
+      letterhead = extractDocxLetterhead(letterheadBuffer);
+    }
+  }
+
   const pdfBytes = await buildContractPdf({
     contractId: contract.id,
     orgName: org?.name ?? "",
@@ -517,6 +532,7 @@ async function generateContract({
     extraClause,
     partners: contractPartners,
     otherParty,
+    letterhead,
   });
 
   const basePath = `${profile.org_id}/${contract.id}`;
@@ -764,6 +780,8 @@ export async function quickSendContractForClient(
       if (Number.isNaN(valor) || valor < 0) return { error: "Valor acordado inválido." };
     }
 
+    const useLetterhead = formData.get("use_letterhead") === "on";
+
     genResult = await generateContract({
       supabase,
       userId: user.id,
@@ -773,6 +791,7 @@ export async function quickSendContractForClient(
       titleInput,
       valor,
       clauseId,
+      useLetterhead,
     });
   }
 
@@ -920,6 +939,7 @@ export async function createContract(
   };
 
   const invertParties = formData.get("invert_parties") === "on";
+  const useLetterhead = formData.get("use_letterhead") === "on";
 
   const result = await generateContract({
     supabase,
@@ -932,6 +952,7 @@ export async function createContract(
     clauseId,
     contratanteOverrides,
     invertParties,
+    useLetterhead,
   });
   if ("error" in result) return result;
 

@@ -890,6 +890,9 @@ export type Database = {
           email: string | null
           endereco: Json | null
           id: string
+          letterhead_file_name: string | null
+          letterhead_file_path: string | null
+          letterhead_file_size: number | null
           name: string
           owner_claimed_at: string | null
           pending_plan: string | null
@@ -907,6 +910,9 @@ export type Database = {
           email?: string | null
           endereco?: Json | null
           id?: string
+          letterhead_file_name?: string | null
+          letterhead_file_path?: string | null
+          letterhead_file_size?: number | null
           name: string
           owner_claimed_at?: string | null
           pending_plan?: string | null
@@ -924,6 +930,9 @@ export type Database = {
           email?: string | null
           endereco?: Json | null
           id?: string
+          letterhead_file_name?: string | null
+          letterhead_file_path?: string | null
+          letterhead_file_size?: number | null
           name?: string
           owner_claimed_at?: string | null
           pending_plan?: string | null

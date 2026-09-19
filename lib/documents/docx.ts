@@ -42,11 +42,7 @@ export function encodeXmlEntities(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Extrai o texto (por parágrafo) de um .docx já mesclado, para compor o PDF. */
-export function extractDocxParagraphs(docxBuffer: Buffer): string[] {
-  const zip = new PizZip(docxBuffer);
-  const xml = zip.file("word/document.xml")?.asText() ?? "";
-
+function extractParagraphsFromXml(xml: string): string[] {
   const paragraphMatches = xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
 
   return paragraphMatches
@@ -58,4 +54,52 @@ export function extractDocxParagraphs(docxBuffer: Buffer): string[] {
       return text;
     })
     .filter((line) => line.trim().length > 0);
+}
+
+/** Extrai o texto (por parágrafo) de um .docx já mesclado, para compor o PDF. */
+export function extractDocxParagraphs(docxBuffer: Buffer): string[] {
+  const zip = new PizZip(docxBuffer);
+  const xml = zip.file("word/document.xml")?.asText() ?? "";
+  return extractParagraphsFromXml(xml);
+}
+
+export interface DocxLetterheadContent {
+  headerLines: string[];
+  footerLines: string[];
+  logo?: { bytes: Buffer; format: "png" | "jpg" };
+}
+
+/** Extrai cabeçalho/rodapé (texto + logo, se houver) de um .docx de papel
+ *  timbrado, para desenhar em toda página do PDF gerado (ver
+ *  lib/documents/pdf.ts). Usa o primeiro header*.xml/footer*.xml encontrado
+ *  no .docx — cobre o caso comum de um modelo com uma única seção. */
+export function extractDocxLetterhead(docxBuffer: Buffer): DocxLetterheadContent {
+  const zip = new PizZip(docxBuffer);
+  const fileNames = Object.keys(zip.files);
+
+  const headerFile = fileNames.filter((n) => /^word\/header\d+\.xml$/.test(n)).sort()[0];
+  const footerFile = fileNames.filter((n) => /^word\/footer\d+\.xml$/.test(n)).sort()[0];
+
+  const headerLines = headerFile ? extractParagraphsFromXml(zip.file(headerFile)!.asText()) : [];
+  const footerLines = footerFile ? extractParagraphsFromXml(zip.file(footerFile)!.asText()) : [];
+
+  let logo: DocxLetterheadContent["logo"];
+  if (headerFile) {
+    const relsPath = headerFile.replace(/^word\//, "word/_rels/") + ".rels";
+    const relsXml = zip.file(relsPath)?.asText();
+    const match = relsXml?.match(/Target="([^"]*\.(png|jpe?g))"/i);
+    if (match) {
+      const relTarget = match[1].replace(/^\.?\/?/, "");
+      const mediaPath = relTarget.startsWith("media/") ? `word/${relTarget}` : relTarget;
+      const imgFile = zip.file(mediaPath);
+      if (imgFile) {
+        logo = {
+          bytes: imgFile.asNodeBuffer(),
+          format: /\.png$/i.test(relTarget) ? "png" : "jpg",
+        };
+      }
+    }
+  }
+
+  return { headerLines, footerLines, logo };
 }

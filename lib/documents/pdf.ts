@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { formatCPF } from "@/lib/validation/cpf-cnpj";
 
 const PAGE_MARGIN = 56;
@@ -33,7 +33,17 @@ export interface ContractPartner {
   roleTitle: string | null;
 }
 
+export interface ContractLetterhead {
+  headerLines: string[];
+  footerLines: string[];
+  logo?: { bytes: Uint8Array; format: "png" | "jpg" };
+}
+
 export interface ContractPdfInput {
+  /** Papel timbrado da organização (opcional) — cabeçalho/rodapé + logo
+   *  extraídos de um .docx (ver lib/documents/docx.ts, extractDocxLetterhead),
+   *  repetidos em toda página do PDF gerado. */
+  letterhead?: ContractLetterhead;
   contractId: string;
   /** Nome real da organização — sempre "Minha Empresa", independente de qual
    *  papel contratual ela ocupa neste contrato. Usado ao lado do nome dos
@@ -70,16 +80,67 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+  const letterhead = input.letterhead;
+  const logoImage = letterhead?.logo
+    ? letterhead.logo.format === "png"
+      ? await pdfDoc.embedPng(letterhead.logo.bytes)
+      : await pdfDoc.embedJpg(letterhead.logo.bytes)
+    : null;
+
+  const HEADER_BAND = letterhead ? 66 : 0;
+  const FOOTER_BAND = letterhead ? 12 + (letterhead.footerLines.length || 0) * 11 : 0;
+  const TOP_MARGIN = PAGE_MARGIN + HEADER_BAND;
+  const BOTTOM_MARGIN = PAGE_MARGIN + FOOTER_BAND;
+
+  const drawLetterhead = (pg: PDFPage, pageWidth: number, pageHeight: number) => {
+    if (!letterhead) return;
+
+    let textX = PAGE_MARGIN;
+    if (logoImage) {
+      const logoWidth = 44;
+      const scale = logoWidth / logoImage.width;
+      const logoHeight = logoImage.height * scale;
+      pg.drawImage(logoImage, {
+        x: PAGE_MARGIN,
+        y: pageHeight - PAGE_MARGIN - logoHeight,
+        width: logoWidth,
+        height: logoHeight,
+      });
+      textX = PAGE_MARGIN + logoWidth + 10;
+    }
+
+    let hy = pageHeight - PAGE_MARGIN - 9;
+    for (const line of letterhead.headerLines) {
+      pg.drawText(line, { x: textX, y: hy, size: 8.5, font, color: rgb(0.35, 0.35, 0.35) });
+      hy -= 11;
+    }
+
+    pg.drawLine({
+      start: { x: PAGE_MARGIN, y: pageHeight - PAGE_MARGIN - HEADER_BAND + 12 },
+      end: { x: pageWidth - PAGE_MARGIN, y: pageHeight - PAGE_MARGIN - HEADER_BAND + 12 },
+      thickness: 0.5,
+      color: rgb(0.85, 0.85, 0.85),
+    });
+
+    let fy = PAGE_MARGIN + FOOTER_BAND - 20;
+    for (const line of letterhead.footerLines) {
+      pg.drawText(line, { x: PAGE_MARGIN, y: fy, size: 8, font, color: rgb(0.5, 0.5, 0.5) });
+      fy -= 11;
+    }
+  };
+
   let page = pdfDoc.addPage();
   let { width, height } = page.getSize();
-  let y = height - PAGE_MARGIN;
+  let y = height - TOP_MARGIN;
   const maxWidth = width - PAGE_MARGIN * 2;
+  drawLetterhead(page, width, height);
 
   const newPageIfNeeded = (needed: number) => {
-    if (y - needed < PAGE_MARGIN) {
+    if (y - needed < BOTTOM_MARGIN) {
       page = pdfDoc.addPage();
       ({ width, height } = page.getSize());
-      y = height - PAGE_MARGIN;
+      y = height - TOP_MARGIN;
+      drawLetterhead(page, width, height);
     }
   };
 

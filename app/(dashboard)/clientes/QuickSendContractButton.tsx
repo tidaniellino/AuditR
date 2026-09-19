@@ -18,6 +18,7 @@ export function QuickSendContractButton({
   client,
   templates,
   clauses,
+  hasLetterhead,
 }: {
   client: {
     id: string;
@@ -29,6 +30,7 @@ export function QuickSendContractButton({
   };
   templates: { id: string; name: string; contract_type: string | null; is_system_default: boolean; previewUrl: string | null }[];
   clauses: { id: string; title: string }[];
+  hasLetterhead: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("template");
@@ -151,6 +153,18 @@ export function QuickSendContractButton({
                   ))}
                 </select>
               </Field>
+
+              {hasLetterhead && (
+                <label className="flex items-start gap-2.5 rounded-card border border-edge bg-mist px-3.5 py-2.5 text-sm text-ink_text">
+                  <input type="checkbox" name="use_letterhead" className="mt-0.5 accent-brand-via" />
+                  <span>
+                    <span className="font-medium">Usar papel timbrado</span>
+                    <span className="block text-xs text-muted">
+                      Gera o PDF com o cabeçalho e rodapé timbrados cadastrados em Minha Empresa.
+                    </span>
+                  </span>
+                </label>
+              )}
             </>
           ) : (
             <Field label="Arquivo do contrato" htmlFor="file" hint="Arquivo .docx, já pronto para assinatura">

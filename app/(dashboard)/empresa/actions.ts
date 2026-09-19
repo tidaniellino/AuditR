@@ -8,6 +8,12 @@ import { canManageOrg, ROLE_LABELS, type UserRole } from "@/lib/auth/permissions
 import { isValidCPF, onlyDigits } from "@/lib/validation/cpf-cnpj";
 import { validatePassword } from "@/lib/validation/password";
 import { getAdminUsage } from "@/lib/billing/limits";
+import {
+  isAllowedLetterheadFile,
+  MAX_LETTERHEAD_FILE_BYTES,
+  uploadLetterheadFile,
+  deleteLetterheadFile,
+} from "@/lib/storage/letterhead";
 
 const ADMIN_LIMIT_MESSAGE =
   "Limite de usuários Sócio (administrador) do seu plano atingido. Faça upgrade em Assinatura para adicionar mais.";
@@ -72,6 +78,76 @@ export async function updateOrganization(
 
   revalidatePath("/empresa");
   return {};
+}
+
+export interface LetterheadFormState {
+  error?: string;
+}
+
+export async function uploadLetterhead(
+  _prevState: LetterheadFormState | undefined,
+  formData: FormData
+): Promise<LetterheadFormState> {
+  const { supabase, profile } = await requireOrgManager();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Selecione um arquivo .docx." };
+  }
+  if (file.size > MAX_LETTERHEAD_FILE_BYTES) {
+    return { error: "Arquivo muito grande (máximo 10 MB)." };
+  }
+  if (!isAllowedLetterheadFile(file)) {
+    return { error: "Formato não suportado. Envie um arquivo .docx." };
+  }
+
+  const { data: current } = await supabase
+    .from("organizations")
+    .select("letterhead_file_path")
+    .eq("id", profile.org_id)
+    .single();
+
+  const uploaded = await uploadLetterheadFile(supabase, profile.org_id, file);
+  if ("error" in uploaded) return { error: uploaded.error };
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      letterhead_file_path: uploaded.path,
+      letterhead_file_name: uploaded.name,
+      letterhead_file_size: uploaded.size,
+    })
+    .eq("id", profile.org_id);
+
+  if (error) return { error: "Não foi possível salvar o papel timbrado." };
+
+  if (current?.letterhead_file_path) {
+    await deleteLetterheadFile(supabase, current.letterhead_file_path);
+  }
+
+  revalidatePath("/empresa");
+  return {};
+}
+
+export async function removeLetterhead(): Promise<void> {
+  const { supabase, profile } = await requireOrgManager();
+
+  const { data: current } = await supabase
+    .from("organizations")
+    .select("letterhead_file_path")
+    .eq("id", profile.org_id)
+    .single();
+
+  await supabase
+    .from("organizations")
+    .update({ letterhead_file_path: null, letterhead_file_name: null, letterhead_file_size: null })
+    .eq("id", profile.org_id);
+
+  if (current?.letterhead_file_path) {
+    await deleteLetterheadFile(supabase, current.letterhead_file_path);
+  }
+
+  revalidatePath("/empresa");
 }
 
 export interface MemberFormState {

@@ -5,27 +5,29 @@ import { ContractForm } from "./ContractForm";
 export default async function NovoContratoPage() {
   const supabase = await createClient();
 
-  const [{ data: clients }, { data: templates }, { data: clauses }, { data: representatives }] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, rg, endereco")
-      .eq("active", true)
-      .order("nome_razao_social", { ascending: true }),
-    supabase
-      .from("contract_templates")
-      .select("id, name, contract_type, is_system_default, source_file_path")
-      .eq("active", true)
-      .order("name", { ascending: true }),
-    supabase
-      .from("clauses")
-      .select("id, title")
-      .eq("status", "approved")
-      .order("title", { ascending: true }),
-    supabase
-      .from("client_representatives")
-      .select("client_id, full_name, cpf, rg, is_principal")
-      .order("is_principal", { ascending: false }),
-  ]);
+  const [{ data: clients }, { data: templates }, { data: clauses }, { data: representatives }, { data: org }] =
+    await Promise.all([
+      supabase
+        .from("clients")
+        .select("id, tipo_pessoa, cpf_cnpj, nome_razao_social, nome_fantasia, rg, endereco")
+        .eq("active", true)
+        .order("nome_razao_social", { ascending: true }),
+      supabase
+        .from("contract_templates")
+        .select("id, name, contract_type, is_system_default, source_file_path")
+        .eq("active", true)
+        .order("name", { ascending: true }),
+      supabase
+        .from("clauses")
+        .select("id, title")
+        .eq("status", "approved")
+        .order("title", { ascending: true }),
+      supabase
+        .from("client_representatives")
+        .select("client_id, full_name, cpf, rg, is_principal")
+        .order("is_principal", { ascending: false }),
+      supabase.from("organizations").select("letterhead_file_path").single(),
+    ]);
 
   const representativeByClient = new Map<string, { full_name: string; cpf: string; rg: string | null }>();
   for (const rep of representatives ?? []) {
@@ -69,7 +71,12 @@ export default async function NovoContratoPage() {
         Escolha o cliente e o modelo para gerar o contrato em .docx e .pdf. Você poderá enviar para
         assinatura na tela do contrato depois de gerado.
       </p>
-      <ContractForm clients={clientsWithDetails} templates={templatesWithPreview} clauses={clauses ?? []} />
+      <ContractForm
+        clients={clientsWithDetails}
+        templates={templatesWithPreview}
+        clauses={clauses ?? []}
+        hasLetterhead={Boolean(org?.letterhead_file_path)}
+      />
     </div>
   );
 }

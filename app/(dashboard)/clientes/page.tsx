@@ -35,23 +35,26 @@ export default async function ClientesPage({
     clientsQuery = clientsQuery.eq("tipo_pessoa", tipo);
   }
 
-  const [{ data: clients }, { data: templates }, { data: clauses }, { data: representatives }] = await Promise.all([
-    clientsQuery,
-    supabase
-      .from("contract_templates")
-      .select("id, name, contract_type, is_system_default, source_file_path")
-      .eq("active", true)
-      .order("name", { ascending: true }),
-    supabase
-      .from("clauses")
-      .select("id, title")
-      .eq("status", "approved")
-      .order("title", { ascending: true }),
-    supabase
-      .from("client_representatives")
-      .select("id, client_id, full_name, cpf, rg, is_principal")
-      .order("is_principal", { ascending: false }),
-  ]);
+  const [{ data: clients }, { data: templates }, { data: clauses }, { data: representatives }, { data: org }] =
+    await Promise.all([
+      clientsQuery,
+      supabase
+        .from("contract_templates")
+        .select("id, name, contract_type, is_system_default, source_file_path")
+        .eq("active", true)
+        .order("name", { ascending: true }),
+      supabase
+        .from("clauses")
+        .select("id, title")
+        .eq("status", "approved")
+        .order("title", { ascending: true }),
+      supabase
+        .from("client_representatives")
+        .select("id, client_id, full_name, cpf, rg, is_principal")
+        .order("is_principal", { ascending: false }),
+      supabase.from("organizations").select("letterhead_file_path").single(),
+    ]);
+  const hasLetterhead = Boolean(org?.letterhead_file_path);
 
   type RepresentativeRow = { id: string; client_id: string; full_name: string; cpf: string; rg: string | null; is_principal: boolean };
   const representativesByClient = new Map<string, RepresentativeRow[]>();
@@ -169,6 +172,7 @@ export default async function ClientesPage({
                         }}
                         templates={templatesWithPreview}
                         clauses={clauses ?? []}
+                        hasLetterhead={hasLetterhead}
                       />
                       <EditClientModal
                         client={{
