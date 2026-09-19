@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchFilterBar } from "@/components/ui/SearchFilterBar";
 import { STATUS_DISPLAY, resolveDisplayStatus, type ContractStatus } from "@/lib/contracts/status";
 import { getContractFileSignedUrl } from "@/lib/storage/contracts";
 import { DownloadIcon } from "@/components/dashboard/icons";
@@ -9,18 +10,25 @@ import { RelatorioModal } from "./RelatorioModal";
 
 const PAGE_SIZE = 10;
 
+const STATUS_FILTER_VALUES = ["nao_assinado", "aguardando_assinatura", "assinado", "arquivado"] as const;
+type StatusFilter = (typeof STATUS_FILTER_VALUES)[number];
+
 export default async function ContratosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
 }) {
   const supabase = await createClient();
   const params = await searchParams;
   const currentPage = Math.max(1, Number(params.page) || 1);
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
+  const q = params.q;
+  const status = STATUS_FILTER_VALUES.includes(params.status as StatusFilter)
+    ? (params.status as StatusFilter)
+    : undefined;
 
-  const { data: contracts, count } = await supabase
+  let contractsQuery = supabase
     .from("contracts")
     .select(
       "id, title, status, created_at, generated_pdf_path, signed_document_url, clients(nome_razao_social), contract_templates(name), signature_codes(expires_at, created_at), profiles!contracts_created_by_fkey(full_name)",
@@ -28,6 +36,12 @@ export default async function ContratosPage({
     )
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  if (q?.trim()) contractsQuery = contractsQuery.ilike("title", `%${q.trim()}%`);
+  if (status === "nao_assinado") contractsQuery = contractsQuery.in("status", ["rascunho", "em_revisao"]);
+  else if (status) contractsQuery = contractsQuery.eq("status", status);
+
+  const { data: contracts, count } = await contractsQuery;
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
@@ -67,11 +81,30 @@ export default async function ContratosPage({
         </div>
       </div>
 
+      <SearchFilterBar
+        basePath="/contratos"
+        searchPlaceholder="Buscar por título do contrato..."
+        currentQuery={q}
+        filterParamName="status"
+        filterLabel="Todos os status"
+        filterOptions={[
+          { value: "nao_assinado", label: "Não assinado" },
+          { value: "aguardando_assinatura", label: "Aguardando assinatura" },
+          { value: "assinado", label: "Assinado" },
+          { value: "arquivado", label: "Arquivado" },
+        ]}
+        currentFilter={status}
+      />
+
       {!count ? (
         <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
-          <p className="text-sm font-medium text-ink_text">Nenhum contrato gerado ainda</p>
+          <p className="text-sm font-medium text-ink_text">
+            {q || status ? "Nenhum contrato encontrado para essa busca" : "Nenhum contrato gerado ainda"}
+          </p>
           <p className="mt-1 text-sm text-muted">
-            Crie o primeiro contrato a partir de um cliente e um modelo cadastrados.
+            {q || status
+              ? "Tente ajustar os termos ou limpar os filtros."
+              : "Crie o primeiro contrato a partir de um cliente e um modelo cadastrados."}
           </p>
         </div>
       ) : (
@@ -141,7 +174,12 @@ export default async function ContratosPage({
         </div>
       )}
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/contratos" />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath="/contratos"
+        extraParams={{ q, status }}
+      />
     </div>
   );
 }

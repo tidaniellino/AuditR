@@ -2,13 +2,19 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { canEditClauses, type UserRole } from "@/lib/auth/permissions";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
+import { SearchFilterBar } from "@/components/ui/SearchFilterBar";
 import { PencilIcon, DownloadIcon } from "@/components/dashboard/icons";
 import { toggleTemplateActive } from "./actions";
 import { DeleteTemplateButton } from "./DeleteTemplateButton";
 import { getTemplateFileSignedUrl } from "@/lib/storage/templates";
 
-export default async function ModelosPage() {
+export default async function ModelosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const supabase = await createClient();
+  const { q, status } = await searchParams;
 
   const {
     data: { user },
@@ -20,10 +26,17 @@ export default async function ModelosPage() {
 
   const isEditor = canEditClauses(profile?.role as UserRole | undefined);
 
-  const { data: templates } = await supabase
+  let templatesQuery = supabase
     .from("contract_templates")
     .select("id, name, description, contract_type, active, created_at, source_file_path, is_system_default")
     .order("created_at", { ascending: false });
+
+  if (q?.trim()) templatesQuery = templatesQuery.ilike("name", `%${q.trim()}%`);
+  if (status === "ativo" || status === "inativo") {
+    templatesQuery = templatesQuery.eq("active", status === "ativo");
+  }
+
+  const { data: templates } = await templatesQuery;
 
   const fileUrls = new Map(
     await Promise.all(
@@ -61,13 +74,30 @@ export default async function ModelosPage() {
         </p>
       )}
 
+      <SearchFilterBar
+        basePath="/modelos"
+        searchPlaceholder="Buscar por nome..."
+        currentQuery={q}
+        filterParamName="status"
+        filterLabel="Todos os status"
+        filterOptions={[
+          { value: "ativo", label: "Ativo" },
+          { value: "inativo", label: "Inativo" },
+        ]}
+        currentFilter={status}
+      />
+
       {!templates?.length ? (
         <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
-          <p className="text-sm font-medium text-ink_text">Nenhum modelo cadastrado ainda</p>
+          <p className="text-sm font-medium text-ink_text">
+            {q || status ? "Nenhum modelo encontrado para essa busca" : "Nenhum modelo cadastrado ainda"}
+          </p>
           <p className="mt-1 text-sm text-muted">
-            {isEditor
-              ? "Cadastre o primeiro modelo a partir de um arquivo .doc ou .docx."
-              : "Peça a um Sócio para cadastrar os modelos do escritório."}
+            {q || status
+              ? "Tente ajustar os termos ou limpar os filtros."
+              : isEditor
+                ? "Cadastre o primeiro modelo a partir de um arquivo .doc ou .docx."
+                : "Peça a um Sócio para cadastrar os modelos do escritório."}
           </p>
         </div>
       ) : (

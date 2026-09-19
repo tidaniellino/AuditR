@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { canEditClauses, type UserRole } from "@/lib/auth/permissions";
+import { SearchFilterBar } from "@/components/ui/SearchFilterBar";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
@@ -8,8 +9,13 @@ const STATUS_LABELS: Record<string, string> = {
   deprecated: "Descontinuada",
 };
 
-export default async function ClausulasPage() {
+export default async function ClausulasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const supabase = await createClient();
+  const { q, status } = await searchParams;
 
   const {
     data: { user },
@@ -21,10 +27,17 @@ export default async function ClausulasPage() {
 
   const isEditor = canEditClauses(profile?.role as UserRole | undefined);
 
-  const { data: clauses } = await supabase
+  let clausesQuery = supabase
     .from("clauses")
     .select("id, title, status, clause_type, applicable_contract_types, clause_categories(name)")
     .order("title");
+
+  if (q?.trim()) clausesQuery = clausesQuery.ilike("title", `%${q.trim()}%`);
+  if (status === "draft" || status === "approved" || status === "deprecated") {
+    clausesQuery = clausesQuery.eq("status", status);
+  }
+
+  const { data: clauses } = await clausesQuery;
 
   return (
     <div>
@@ -47,13 +60,31 @@ export default async function ClausulasPage() {
         )}
       </div>
 
+      <SearchFilterBar
+        basePath="/clausulas"
+        searchPlaceholder="Buscar por título..."
+        currentQuery={q}
+        filterParamName="status"
+        filterLabel="Todos os status"
+        filterOptions={[
+          { value: "draft", label: "Rascunho" },
+          { value: "approved", label: "Aprovada" },
+          { value: "deprecated", label: "Descontinuada" },
+        ]}
+        currentFilter={status}
+      />
+
       {!clauses?.length ? (
         <div className="rounded-card border border-dashed border-edge bg-card px-6 py-10 text-center">
-          <p className="text-sm font-medium text-ink_text">Nenhuma cláusula cadastrada ainda</p>
+          <p className="text-sm font-medium text-ink_text">
+            {q || status ? "Nenhuma cláusula encontrada para essa busca" : "Nenhuma cláusula cadastrada ainda"}
+          </p>
           <p className="mt-1 text-sm text-muted">
-            {isEditor
-              ? "Cadastre a primeira cláusula-padrão do escritório."
-              : "Peça a um Sócio para cadastrar as cláusulas do escritório."}
+            {q || status
+              ? "Tente ajustar os termos ou limpar os filtros."
+              : isEditor
+                ? "Cadastre a primeira cláusula-padrão do escritório."
+                : "Peça a um Sócio para cadastrar as cláusulas do escritório."}
           </p>
         </div>
       ) : (
