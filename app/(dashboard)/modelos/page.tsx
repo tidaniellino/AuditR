@@ -2,10 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { canEditClauses, type UserRole } from "@/lib/auth/permissions";
 import { SearchParamsToast } from "@/components/ui/SearchParamsToast";
-import { PencilIcon } from "@/components/dashboard/icons";
+import { PencilIcon, DownloadIcon } from "@/components/dashboard/icons";
 import { toggleTemplateActive } from "./actions";
 import { DeleteTemplateButton } from "./DeleteTemplateButton";
-import { getTemplateFileSignedUrl, formatFileSize } from "@/lib/storage/templates";
+import { getTemplateFileSignedUrl } from "@/lib/storage/templates";
 
 export default async function ModelosPage() {
   const supabase = await createClient();
@@ -22,9 +22,7 @@ export default async function ModelosPage() {
 
   const { data: templates } = await supabase
     .from("contract_templates")
-    .select(
-      "id, name, description, contract_type, active, created_at, source_file_path, source_file_name, source_file_size, is_system_default"
-    )
+    .select("id, name, description, contract_type, active, created_at, source_file_path, is_system_default")
     .order("created_at", { ascending: false });
 
   const fileUrls = new Map(
@@ -80,46 +78,30 @@ export default async function ModelosPage() {
               <tr className="border-b border-edge bg-mist text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">Tipo</th>
-                <th className="px-4 py-3 font-medium">Arquivo-modelo</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                {isEditor && <th className="px-4 py-3 font-medium">Ações</th>}
+                <th className="px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
               {templates.map((t) => (
                 <tr key={t.id} className="border-b border-edge last:border-0 hover:bg-mist/60">
                   <td className="px-4 py-3 font-medium text-ink_text">
-                    {isEditor && !t.is_system_default ? (
-                      <Link href={`/modelos/${t.id}/editar`} className="hover:text-brand-via">
-                        {t.name}
-                      </Link>
-                    ) : (
-                      t.name
-                    )}
+                    <div>
+                      {isEditor && !t.is_system_default ? (
+                        <Link href={`/modelos/${t.id}/editar`} className="hover:text-brand-via">
+                          {t.name}
+                        </Link>
+                      ) : (
+                        t.name
+                      )}
+                    </div>
                     {t.is_system_default && (
-                      <span className="ml-2 rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-brand-to">
+                      <span className="mt-1 inline-block rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-brand-to">
                         Modelo do sistema
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink_text">{t.contract_type ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    {t.source_file_path && fileUrls.get(t.id) ? (
-                      <a
-                        href={fileUrls.get(t.id)!}
-                        className="text-brand-via hover:underline"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {t.source_file_name ?? "arquivo"}
-                        {t.source_file_size ? (
-                          <span className="ml-1 text-xs text-muted">({formatFileSize(t.source_file_size)})</span>
-                        ) : null}
-                      </a>
-                    ) : (
-                      <span className="text-muted">Sem arquivo</span>
-                    )}
-                  </td>
                   <td className="px-4 py-3">
                     {isEditor ? (
                       <form action={toggleTemplateActive}>
@@ -146,12 +128,22 @@ export default async function ModelosPage() {
                       </span>
                     )}
                   </td>
-                  {isEditor && (
-                    <td className="px-4 py-3">
-                      {t.is_system_default ? (
-                        <span className="text-xs text-muted">Fixo — não editável</span>
-                      ) : (
-                        <div className="flex items-center gap-1">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      {fileUrls.get(t.id) && (
+                        <a
+                          href={fileUrls.get(t.id)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="Baixar modelo do contrato"
+                          title="Baixar modelo do contrato"
+                          className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-mist hover:text-brand-via"
+                        >
+                          <DownloadIcon />
+                        </a>
+                      )}
+                      {isEditor && !t.is_system_default && (
+                        <>
                           <Link
                             href={`/modelos/${t.id}/editar`}
                             aria-label="Editar modelo"
@@ -161,10 +153,13 @@ export default async function ModelosPage() {
                             <PencilIcon />
                           </Link>
                           <DeleteTemplateButton templateId={t.id} templateName={t.name} />
-                        </div>
+                        </>
                       )}
-                    </td>
-                  )}
+                      {isEditor && t.is_system_default && (
+                        <span className="text-xs text-muted">Fixo</span>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
