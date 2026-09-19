@@ -21,7 +21,7 @@ export function DefaultSignerToggle({ memberId, isDefault }: { memberId: string;
       onClick={handleClick}
       disabled={isPending}
       title="Sócio usado para assinar quando o contrato exige só um signatário"
-      className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         isDefault ? "border-seal/40 bg-seal/10 text-seal" : "border-edge text-muted hover:bg-mist"
       }`}
     >

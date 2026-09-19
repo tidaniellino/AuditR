@@ -25,7 +25,7 @@ export function ClientActiveToggle({ clientId, active }: { clientId: string; act
           }`}
         />
       </button>
-      <span className="font-mono text-[10px] uppercase tracking-wide text-muted">{active ? "Ativo" : "Inativo"}</span>
+      <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-wide text-muted">{active ? "Ativo" : "Inativo"}</span>
     </label>
   );
 }

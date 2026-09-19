@@ -94,7 +94,7 @@ export default async function EditarClausulaPage({ params }: { params: Promise<{
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {v.is_current && (
-                  <span className="rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-brand-to">
+                  <span className="whitespace-nowrap rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-brand-to">
                     Vigente
                   </span>
                 )}
@@ -122,7 +122,7 @@ export default async function EditarClausulaPage({ params }: { params: Promise<{
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span
-                    className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+                    className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
                       inc.severity === "error" ? "border-stamp/40 text-stamp" : "border-edge text-muted"
                     }`}
                   >

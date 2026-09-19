@@ -117,7 +117,7 @@ export default async function ClausulasPage({
                     <td className="px-4 py-3 text-muted">{clause.clause_type ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+                        className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
                           clause.status === "approved"
                             ? "border-brand-to/40 text-brand-to"
                             : clause.status === "deprecated"

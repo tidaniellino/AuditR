@@ -126,7 +126,7 @@ export default async function ModelosPage({
                       )}
                     </div>
                     {t.is_system_default && (
-                      <span className="mt-1 inline-block rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-brand-to">
+                      <span className="mt-1 inline-block whitespace-nowrap rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-brand-to">
                         Modelo do sistema
                       </span>
                     )}
@@ -139,7 +139,7 @@ export default async function ModelosPage({
                         <input type="hidden" name="next_value" value={(!t.active).toString()} />
                         <button
                           type="submit"
-                          className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide transition-colors ${
+                          className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide transition-colors ${
                             t.active
                               ? "border-brand-to/40 text-brand-to hover:bg-brand-tint"
                               : "border-edge text-muted hover:bg-mist"
@@ -150,7 +150,7 @@ export default async function ModelosPage({
                       </form>
                     ) : (
                       <span
-                        className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+                        className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
                           t.active ? "border-brand-to/40 text-brand-to" : "border-edge text-muted"
                         }`}
                       >

@@ -25,7 +25,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
 
   return (
     <div className="max-w-xl">
-      <span className="rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
+      <span className="whitespace-nowrap rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
         {client.tipo_pessoa}
       </span>
       <h1 className="mt-3 font-display text-3xl text-ink_text">{client.nome_razao_social}</h1>
@@ -95,7 +95,7 @@ export default async function ClienteDetalhePage({ params }: { params: Promise<{
                   <span className="font-mono text-xs text-muted">{formatCpfCnpj(r.cpf, "PF")}</span>
                   {r.rg && <span className="text-xs text-muted">RG {r.rg}</span>}
                   {r.is_principal && (
-                    <span className="rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
+                    <span className="whitespace-nowrap rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
                       Principal
                     </span>
                   )}

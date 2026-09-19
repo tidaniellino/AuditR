@@ -26,7 +26,7 @@ export function PlanCard({
       }`}
     >
       {highlighted && (
-        <span className="absolute -top-3 left-7 rounded-full bg-brand-via px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-white">
+        <span className="absolute -top-3 left-7 whitespace-nowrap rounded-full bg-brand-via px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-white">
           Mais popular
         </span>
       )}

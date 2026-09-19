@@ -144,7 +144,7 @@ export default async function ContratosPage({
                     <td className="px-4 py-3 text-muted">{template?.name ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${status.badgeClass}`}
+                        className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${status.badgeClass}`}
                       >
                         {status.label}
                       </span>

@@ -167,7 +167,7 @@ export function TemplateFieldsReview({
                     </td>
                     <td className="px-3 py-2">
                       <span
-                        className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+                        className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
                           row.confidence === "low"
                             ? "border-stamp/30 text-stamp-dim"
                             : "border-seal/30 text-seal"

@@ -14,7 +14,7 @@ export function UnlockMemberButton({ memberId, memberName }: { memberId: string;
         type="button"
         onClick={() => setOpen(true)}
         disabled={isPending}
-        className="rounded-full border border-stamp/40 bg-stamp-tint px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-stamp-dim transition-colors hover:bg-stamp-tint/70 disabled:opacity-50"
+        className="whitespace-nowrap rounded-full border border-stamp/40 bg-stamp-tint px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-stamp-dim transition-colors hover:bg-stamp-tint/70 disabled:opacity-50"
       >
         {isPending ? "Desbloqueando..." : "Bloqueado · Desbloquear"}
       </button>

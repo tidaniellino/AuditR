@@ -152,7 +152,7 @@ export default async function ClientesPage({
                     <p className="text-xs text-muted">{c.telefone ?? ""}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
+                    <span className="whitespace-nowrap rounded-full border border-edge px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted">
                       {c.tipo_pessoa}
                     </span>
                   </td>

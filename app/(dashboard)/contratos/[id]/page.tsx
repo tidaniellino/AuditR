@@ -62,7 +62,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
           <h1 className="mt-2 font-display text-3xl text-ink_text">{contract.title}</h1>
         </div>
         <span
-          className={`mt-1 shrink-0 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide ${status.badgeClass}`}
+          className={`mt-1 shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide ${status.badgeClass}`}
         >
           {status.label}
         </span>
