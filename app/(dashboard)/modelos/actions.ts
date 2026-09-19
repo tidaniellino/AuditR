@@ -160,6 +160,15 @@ export async function updateTemplate(
   if (!contractType) return { error: "Tipo de contrato é obrigatório." };
   if (!description) return { error: "Descrição é obrigatória." };
 
+  const { data: currentTemplate } = await supabase
+    .from("contract_templates")
+    .select("is_system_default")
+    .eq("id", templateId)
+    .single();
+  if (currentTemplate?.is_system_default) {
+    return { error: "Modelos fixos do sistema não podem ser editados." };
+  }
+
   const hasNewFile = file instanceof File && file.size > 0;
   if (hasNewFile) {
     if ((file as File).size > MAX_TEMPLATE_FILE_BYTES) {
@@ -229,9 +238,13 @@ export async function deleteTemplate(formData: FormData) {
 
   const { data: template } = await supabase
     .from("contract_templates")
-    .select("source_file_path, name")
+    .select("source_file_path, name, is_system_default")
     .eq("id", templateId)
     .single();
+
+  if (template?.is_system_default) {
+    redirect(`/modelos?erro=${encodeURIComponent("Modelos fixos do sistema não podem ser excluídos.")}`);
+  }
 
   const { error } = await supabase.from("contract_templates").delete().eq("id", templateId);
 

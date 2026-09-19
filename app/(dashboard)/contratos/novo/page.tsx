@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getTemplateFileSignedUrl } from "@/lib/storage/templates";
 import { ContractForm } from "./ContractForm";
 
 export default async function NovoContratoPage() {
@@ -12,7 +13,7 @@ export default async function NovoContratoPage() {
       .order("nome_razao_social", { ascending: true }),
     supabase
       .from("contract_templates")
-      .select("id, name, contract_type")
+      .select("id, name, contract_type, is_system_default, source_file_path")
       .eq("active", true)
       .order("name", { ascending: true }),
     supabase
@@ -33,6 +34,22 @@ export default async function NovoContratoPage() {
     }
   }
 
+  const templatePreviewUrls = new Map(
+    await Promise.all(
+      (templates ?? [])
+        .filter((t) => t.source_file_path)
+        .map(async (t) => [t.id, await getTemplateFileSignedUrl(supabase, t.source_file_path!)] as const)
+    )
+  );
+
+  const templatesWithPreview = (templates ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    contract_type: t.contract_type,
+    is_system_default: t.is_system_default,
+    previewUrl: templatePreviewUrls.get(t.id) ?? null,
+  }));
+
   const clientsWithDetails = (clients ?? []).map((c) => ({
     id: c.id,
     tipo_pessoa: c.tipo_pessoa,
@@ -52,7 +69,7 @@ export default async function NovoContratoPage() {
         Escolha o cliente e o modelo para gerar o contrato em .docx e .pdf. Você poderá enviar para
         assinatura na tela do contrato depois de gerado.
       </p>
-      <ContractForm clients={clientsWithDetails} templates={templates ?? []} clauses={clauses ?? []} />
+      <ContractForm clients={clientsWithDetails} templates={templatesWithPreview} clauses={clauses ?? []} />
     </div>
   );
 }

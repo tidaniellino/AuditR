@@ -57,11 +57,15 @@ export function ContractForm({
   clauses,
 }: {
   clients: ClientOption[];
-  templates: { id: string; name: string; contract_type: string | null }[];
+  templates: { id: string; name: string; contract_type: string | null; is_system_default: boolean; previewUrl: string | null }[];
   clauses: { id: string; title: string }[];
 }) {
   const [state, formAction] = useFormState(createContract, initialState);
   useActionToast(state);
+
+  const templatesById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const selectedTemplate = selectedTemplateId ? templatesById.get(selectedTemplateId) ?? null : null;
 
   const clientsById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -197,15 +201,38 @@ export function ContractForm({
         )}
 
         <Field label="Modelo de contrato" htmlFor="template_id">
-          <select id="template_id" name="template_id" required className={inputClass}>
-            <option value="">— Selecionar —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-                {t.contract_type ? ` · ${t.contract_type}` : ""}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              id="template_id"
+              name="template_id"
+              required
+              className={inputClass}
+              value={selectedTemplateId}
+              onChange={(e) => setSelectedTemplateId(e.target.value)}
+            >
+              <option value="">— Selecionar —</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {t.contract_type ? ` · ${t.contract_type}` : ""}
+                  {t.is_system_default ? " · Modelo do sistema" : ""}
+                </option>
+              ))}
+            </select>
+            {selectedTemplate?.previewUrl && (
+              <a
+                href={selectedTemplate.previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 whitespace-nowrap rounded-card border border-edge px-3 py-2.5 text-xs font-medium text-ink_text hover:bg-mist"
+              >
+                Pré-visualizar
+              </a>
+            )}
+          </div>
+          {selectedTemplate?.is_system_default && (
+            <p className="mt-1.5 text-xs text-muted">Modelo pronto do sistema, disponível para todos os escritórios.</p>
+          )}
         </Field>
 
         <Field label="Título do contrato" htmlFor="title" hint="Opcional — se não preencher, usa o nome do cliente">

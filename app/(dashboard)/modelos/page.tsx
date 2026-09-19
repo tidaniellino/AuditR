@@ -23,7 +23,7 @@ export default async function ModelosPage() {
   const { data: templates } = await supabase
     .from("contract_templates")
     .select(
-      "id, name, description, contract_type, active, created_at, source_file_path, source_file_name, source_file_size"
+      "id, name, description, contract_type, active, created_at, source_file_path, source_file_name, source_file_size, is_system_default"
     )
     .order("created_at", { ascending: false });
 
@@ -89,12 +89,17 @@ export default async function ModelosPage() {
               {templates.map((t) => (
                 <tr key={t.id} className="border-b border-edge last:border-0 hover:bg-mist/60">
                   <td className="px-4 py-3 font-medium text-ink_text">
-                    {isEditor ? (
+                    {isEditor && !t.is_system_default ? (
                       <Link href={`/modelos/${t.id}/editar`} className="hover:text-brand-via">
                         {t.name}
                       </Link>
                     ) : (
                       t.name
+                    )}
+                    {t.is_system_default && (
+                      <span className="ml-2 rounded-full border border-brand-to/40 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wide text-brand-to">
+                        Modelo do sistema
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-ink_text">{t.contract_type ?? "—"}</td>
@@ -143,17 +148,21 @@ export default async function ModelosPage() {
                   </td>
                   {isEditor && (
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/modelos/${t.id}/editar`}
-                          aria-label="Editar modelo"
-                          title="Editar"
-                          className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-mist hover:text-brand-via"
-                        >
-                          <PencilIcon />
-                        </Link>
-                        <DeleteTemplateButton templateId={t.id} templateName={t.name} />
-                      </div>
+                      {t.is_system_default ? (
+                        <span className="text-xs text-muted">Fixo — não editável</span>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Link
+                            href={`/modelos/${t.id}/editar`}
+                            aria-label="Editar modelo"
+                            title="Editar"
+                            className="flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-mist hover:text-brand-via"
+                          >
+                            <PencilIcon />
+                          </Link>
+                          <DeleteTemplateButton templateId={t.id} templateName={t.name} />
+                        </div>
+                      )}
                     </td>
                   )}
                 </tr>

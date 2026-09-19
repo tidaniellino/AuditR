@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { quickSendContractForClient, type QuickSendResult } from "../contratos/actions";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
@@ -27,13 +27,17 @@ export function QuickSendContractButton({
     email: string | null;
     telefone: string | null;
   };
-  templates: { id: string; name: string; contract_type: string | null }[];
+  templates: { id: string; name: string; contract_type: string | null; is_system_default: boolean; previewUrl: string | null }[];
   clauses: { id: string; title: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("template");
   const [state, formAction] = useFormState(quickSendContractForClient, initialState);
   useActionToast(state);
+
+  const templatesById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const selectedTemplate = selectedTemplateId ? templatesById.get(selectedTemplateId) ?? null : null;
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -95,15 +99,38 @@ export function QuickSendContractButton({
           {mode === "template" ? (
             <>
               <Field label="Modelo de contrato" htmlFor="template_id">
-                <select id="template_id" name="template_id" required className={inputClass}>
-                  <option value="">— Selecionar —</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                      {t.contract_type ? ` · ${t.contract_type}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2">
+                  <select
+                    id="template_id"
+                    name="template_id"
+                    required
+                    className={inputClass}
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  >
+                    <option value="">— Selecionar —</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                        {t.contract_type ? ` · ${t.contract_type}` : ""}
+                        {t.is_system_default ? " · Modelo do sistema" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedTemplate?.previewUrl && (
+                    <a
+                      href={selectedTemplate.previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 whitespace-nowrap rounded-card border border-edge px-3 py-2.5 text-xs font-medium text-ink_text hover:bg-mist"
+                    >
+                      Pré-visualizar
+                    </a>
+                  )}
+                </div>
+                {selectedTemplate?.is_system_default && (
+                  <p className="mt-1.5 text-xs text-muted">Modelo pronto do sistema, disponível para todos os escritórios.</p>
+                )}
               </Field>
 
               <Field label="Valor dos honorários" htmlFor="valor" hint="Opcional — em reais, ex.: 1.500,00">

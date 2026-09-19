@@ -622,6 +622,7 @@ export type Database = {
           description: string | null
           fields_analyzed_at: string | null
           id: string
+          is_system_default: boolean
           name: string
           org_id: string
           source_file_name: string | null
@@ -636,6 +637,7 @@ export type Database = {
           description?: string | null
           fields_analyzed_at?: string | null
           id?: string
+          is_system_default?: boolean
           name: string
           org_id: string
           source_file_name?: string | null
@@ -650,6 +652,7 @@ export type Database = {
           description?: string | null
           fields_analyzed_at?: string | null
           id?: string
+          is_system_default?: boolean
           name?: string
           org_id?: string
           source_file_name?: string | null
@@ -1167,6 +1170,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_default_template_masters: {
+        Row: {
+          contract_type: string
+          description: string
+          name: string
+          slug: string
+          source_file_name: string
+          source_file_path: string
+          source_file_size: number
+        }
+        Insert: {
+          contract_type: string
+          description: string
+          name: string
+          slug: string
+          source_file_name: string
+          source_file_path: string
+          source_file_size: number
+        }
+        Update: {
+          contract_type?: string
+          description?: string
+          name?: string
+          slug?: string
+          source_file_name?: string
+          source_file_path?: string
+          source_file_size?: number
+        }
+        Relationships: []
       }
       template_clauses: {
         Row: {

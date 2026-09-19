@@ -6,6 +6,7 @@ import { EditClientModal } from "./EditClientModal";
 import { DeleteClientButton } from "./DeleteClientButton";
 import { ClientActiveToggle } from "./ClientActiveToggle";
 import { QuickSendContractButton } from "./QuickSendContractButton";
+import { getTemplateFileSignedUrl } from "@/lib/storage/templates";
 
 export default async function ClientesPage() {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function ClientesPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("contract_templates")
-      .select("id, name, contract_type")
+      .select("id, name, contract_type, is_system_default, source_file_path")
       .eq("active", true)
       .order("name", { ascending: true }),
     supabase
@@ -40,6 +41,22 @@ export default async function ClientesPage() {
     list.push(rep);
     representativesByClient.set(rep.client_id, list);
   }
+
+  const templatePreviewUrls = new Map(
+    await Promise.all(
+      (templates ?? [])
+        .filter((t) => t.source_file_path)
+        .map(async (t) => [t.id, await getTemplateFileSignedUrl(supabase, t.source_file_path!)] as const)
+    )
+  );
+
+  const templatesWithPreview = (templates ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    contract_type: t.contract_type,
+    is_system_default: t.is_system_default,
+    previewUrl: templatePreviewUrls.get(t.id) ?? null,
+  }));
 
   return (
     <div>
@@ -114,7 +131,7 @@ export default async function ClientesPage() {
                           email: c.email,
                           telefone: c.telefone,
                         }}
-                        templates={templates ?? []}
+                        templates={templatesWithPreview}
                         clauses={clauses ?? []}
                       />
                       <EditClientModal
