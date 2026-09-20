@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedAvatarFile, uploadAvatarFile, deleteAvatarFile, MAX_AVATAR_FILE_BYTES } from "@/lib/storage/avatars";
+import { hasImageMagicBytes } from "@/lib/storage/file-signatures";
 
 async function requireProfile() {
   const supabase = await createClient();
@@ -67,6 +68,7 @@ export async function uploadAvatar(
   if (!(file instanceof File) || file.size === 0) return { error: "Selecione uma imagem." };
   if (file.size > MAX_AVATAR_FILE_BYTES) return { error: "Imagem muito grande (máximo 3 MB)." };
   if (!isAllowedAvatarFile(file)) return { error: "Formato não suportado. Envie .jpg, .png ou .webp." };
+  if (!(await hasImageMagicBytes(file))) return { error: "O conteúdo do arquivo não corresponde a uma imagem válida." };
 
   const uploaded = await uploadAvatarFile(supabase, profile.org_id, user.id, file);
   if ("error" in uploaded) return uploaded;

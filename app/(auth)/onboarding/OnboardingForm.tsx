@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { createOrganizationAndOwner, type OnboardingState } from "./actions";
 import { formatCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
+import { PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT } from "@/lib/validation/password";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Alert } from "@/components/ui/Alert";
@@ -48,13 +49,13 @@ export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo"
         />
       </Field>
 
-      <Field label="Senha" htmlFor="password" hint="Mínimo de 8 caracteres.">
+      <Field label="Senha" htmlFor="password" hint={PASSWORD_POLICY_HINT}>
         <input
           id="password"
           name="password"
           type="password"
           required
-          minLength={8}
+          minLength={PASSWORD_MIN_LENGTH}
           autoComplete="new-password"
           className={inputClass}
         />

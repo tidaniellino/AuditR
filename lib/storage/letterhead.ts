@@ -2,7 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
 export const LETTERHEAD_BUCKET = "org-letterheads";
-export const MAX_LETTERHEAD_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+// Ver comentário equivalente em lib/storage/templates.ts — um cabeçalho/
+// rodapé timbrado é sempre pequeno; limite baixo também reduz o tamanho
+// máximo de um "zip bomb" (.docx é um .zip descompactado sem limite pela
+// PizZip).
+export const MAX_LETTERHEAD_FILE_BYTES = 3 * 1024 * 1024; // 3 MB
 
 export function isAllowedLetterheadFile(file: File): boolean {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -28,8 +32,11 @@ export async function uploadLetterheadFile(
 ): Promise<{ path: string; name: string; size: number } | { error: string }> {
   const path = `${orgId}/${Date.now()}-${sanitizeFileName(file.name)}`;
 
+  // Content-Type fixo (não o que o navegador reportou) — o chamador já
+  // validou os magic bytes antes de chegar aqui, então sabemos que é
+  // mesmo um .docx real, independente do que file.type diga.
   const { error } = await supabase.storage.from(LETTERHEAD_BUCKET).upload(path, file, {
-    contentType: file.type || undefined,
+    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     upsert: false,
   });
 

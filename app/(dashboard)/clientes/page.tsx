@@ -9,6 +9,18 @@ import { ClientActiveToggle } from "./ClientActiveToggle";
 import { QuickSendContractButton } from "./QuickSendContractButton";
 import { getTemplateFileSignedUrl } from "@/lib/storage/templates";
 
+// PostgREST trata "," e ")" como caracteres estruturais na sintaxe do
+// .or() (separador de condição / fechamento de grupo) — sem isso, buscar
+// por um nome com parênteses (ex.: "Empresa (Filial)") quebra a query com
+// um erro de parse do PostgREST em vez de simplesmente não achar nada.
+// Envolver o valor em aspas duplas é a forma de escape que o próprio
+// PostgREST reconhece; um "\" ou "\"" literal dentro do valor precisa ser
+// escapado antes.
+function toOrIlikeValue(value: string): string {
+  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"%${escaped}%"`;
+}
+
 export default async function ClientesPage({
   searchParams,
 }: {
@@ -25,10 +37,13 @@ export default async function ClientesPage({
     .order("created_at", { ascending: false });
 
   if (q?.trim()) {
-    const term = q.trim().replace(/,/g, " ");
+    const term = q.trim();
     const digits = onlyDigits(term);
-    const orConditions = [`nome_razao_social.ilike.%${term}%`, `nome_fantasia.ilike.%${term}%`];
-    if (digits) orConditions.push(`cpf_cnpj.ilike.%${digits}%`);
+    const orConditions = [
+      `nome_razao_social.ilike.${toOrIlikeValue(term)}`,
+      `nome_fantasia.ilike.${toOrIlikeValue(term)}`,
+    ];
+    if (digits) orConditions.push(`cpf_cnpj.ilike.${toOrIlikeValue(digits)}`);
     clientsQuery = clientsQuery.or(orConditions.join(","));
   }
   if (tipo === "PF" || tipo === "PJ") {

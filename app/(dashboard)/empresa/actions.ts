@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +15,7 @@ import {
   uploadLetterheadFile,
   deleteLetterheadFile,
 } from "@/lib/storage/letterhead";
+import { hasDocxMagicBytes } from "@/lib/storage/file-signatures";
 
 const ADMIN_LIMIT_MESSAGE =
   "Limite de usuários Sócio (administrador) do seu plano atingido. Faça upgrade em Assinatura para adicionar mais.";
@@ -100,6 +102,9 @@ export async function uploadLetterhead(
   if (!isAllowedLetterheadFile(file)) {
     return { error: "Formato não suportado. Envie um arquivo .docx." };
   }
+  if (!(await hasDocxMagicBytes(file))) {
+    return { error: "O conteúdo do arquivo não corresponde a um documento .docx válido." };
+  }
 
   const { data: current } = await supabase
     .from("organizations")
@@ -159,7 +164,7 @@ export async function createMember(
   _prevState: MemberFormState | undefined,
   formData: FormData
 ): Promise<MemberFormState> {
-  const { supabase, profile } = await requireOrgManager();
+  const { supabase, user, profile } = await requireOrgManager();
 
   const fullName = String(formData.get("full_name") ?? "").trim();
   const cpf = onlyDigits(String(formData.get("cpf") ?? ""));
@@ -189,11 +194,30 @@ export async function createMember(
     return { error: "Cadastro direto de usuários não está configurado neste ambiente (falta a Service Role Key do Supabase)." };
   }
 
+  // handle_new_user() (trigger em auth.users) rejeita o cadastro de um novo
+  // usuário numa org que já tem dono a menos que exista um convite válido —
+  // sem isso, qualquer pessoa que soubesse o org_id de outro escritório
+  // conseguiria se auto-cadastrar nele via /auth/v1/signup. Como quem chama
+  // esta função já foi verificado como Sócio da própria org (requireOrgManager
+  // + RLS de org_invites), geramos aqui um convite de uso único e curtíssimo
+  // só pra satisfazer essa checagem — não é um convite "de verdade" enviado
+  // por e-mail, é criado e consumido na mesma requisição.
+  const inviteToken = randomBytes(32).toString("hex");
+  const { error: inviteError } = await supabase.from("org_invites").insert({
+    org_id: profile.org_id,
+    email,
+    role,
+    token: inviteToken,
+    created_by: user.id,
+    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  });
+  if (inviteError) return { error: "Não foi possível preparar o cadastro do usuário." };
+
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { org_id: profile.org_id, full_name: fullName },
+    user_metadata: { org_id: profile.org_id, full_name: fullName, invite_token: inviteToken },
   });
 
   if (createError || !created.user) {

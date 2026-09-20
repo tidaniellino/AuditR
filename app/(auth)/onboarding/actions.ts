@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
+import { validatePassword } from "@/lib/validation/password";
 import { isPaidPlanKey } from "@/lib/stripe/plans";
 import { getBaseUrl } from "@/lib/url";
 import { sendSignupConfirmationEmail } from "@/lib/email/resend";
@@ -23,7 +24,9 @@ export async function createOrganizationAndOwner(
 
   if (!fullName) return { error: "Informe seu nome completo." };
   if (!isValidCpfOuCnpj(cpfCnpj)) return { error: "Informe um CPF ou CNPJ válido." };
-  if (password.length < 8) return { error: "A senha deve ter pelo menos 8 caracteres." };
+
+  const passwordProblems = validatePassword(password, { email, cpf: cpfCnpj });
+  if (passwordProblems.length) return { error: passwordProblems[0] };
 
   // Plano escolhido na landing (?plan=profissional|corporativo), carregado
   // pelo formulário como campo oculto. Gravado na organização desde já (e não

@@ -16,6 +16,7 @@ import { formatBRL } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
 import { getContractUsage } from "@/lib/billing/limits";
 import { isAllowedTemplateFile, MAX_TEMPLATE_FILE_BYTES } from "@/lib/storage/templates";
+import { hasDocxMagicBytes } from "@/lib/storage/file-signatures";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 type Profile = { org_id: string; full_name: string };
@@ -594,6 +595,9 @@ async function generateContractFromUpload({
 
   if (!isAllowedTemplateFile(file)) {
     return { error: "Envie um arquivo .docx." };
+  }
+  if (!(await hasDocxMagicBytes(file))) {
+    return { error: "O conteúdo do arquivo não corresponde a um documento .docx válido." };
   }
   if (file.size > MAX_TEMPLATE_FILE_BYTES) {
     return { error: "Arquivo muito grande (máximo 10 MB)." };

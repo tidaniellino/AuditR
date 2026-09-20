@@ -10,6 +10,7 @@ import {
   isAllowedTemplateFile,
   MAX_TEMPLATE_FILE_BYTES,
 } from "@/lib/storage/templates";
+import { hasWordDocumentMagicBytes } from "@/lib/storage/file-signatures";
 import { extractDocxParagraphs } from "@/lib/documents/docx";
 import { analyzeTemplateFields, type TemplateFieldRole } from "@/lib/documents/template-fields";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -107,6 +108,9 @@ export async function createTemplate(
   if (!isAllowedTemplateFile(file)) {
     return { error: "Formato não suportado. Envie um arquivo .doc ou .docx." };
   }
+  if (!(await hasWordDocumentMagicBytes(file))) {
+    return { error: "O conteúdo do arquivo não corresponde a um documento Word válido." };
+  }
 
   const { data: template, error } = await supabase
     .from("contract_templates")
@@ -176,6 +180,9 @@ export async function updateTemplate(
     }
     if (!isAllowedTemplateFile(file as File)) {
       return { error: "Formato não suportado. Envie um arquivo .doc ou .docx." };
+    }
+    if (!(await hasWordDocumentMagicBytes(file as File))) {
+      return { error: "O conteúdo do arquivo não corresponde a um documento Word válido." };
     }
   }
 

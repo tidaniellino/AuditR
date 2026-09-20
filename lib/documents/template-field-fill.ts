@@ -1,5 +1,5 @@
 import PizZip from "pizzip";
-import { decodeXmlEntities, encodeXmlEntities } from "./docx";
+import { decodeXmlEntities, encodeXmlEntities, safeAsText } from "./docx";
 
 /**
  * Substitui, no .docx original (antes do merge de {chave}), cada ocorrência
@@ -21,7 +21,7 @@ import { decodeXmlEntities, encodeXmlEntities } from "./docx";
  */
 export function fillBracketFields(docxBuffer: Buffer, valuesByOccurrence: Map<number, string>): Buffer {
   const zip = new PizZip(docxBuffer);
-  const xml = zip.file("word/document.xml")?.asText() ?? "";
+  const xml = safeAsText(zip.file("word/document.xml"), "word/document.xml");
   if (!xml || valuesByOccurrence.size === 0) return docxBuffer;
 
   interface Run {

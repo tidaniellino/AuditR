@@ -253,16 +253,26 @@ Deno.serve(async (req) => {
     if (new Date(signatureCode.expires_at) <= new Date()) {
       return new Response(JSON.stringify({ error: "expired" }), { status: 410 });
     }
-    if (signatureCode.attempts >= MAX_ATTEMPTS) {
+    // Reserva a tentativa de forma atômica (um único UPDATE condicional no
+    // banco) em vez de checar attempts e só depois incrementar em passos
+    // separados — evita que requisições concorrentes leiam o mesmo contador
+    // e testem vários códigos em paralelo "de graça" (ver migration
+    // atomic_signature_attempt_reservation).
+    const { data: reserveRows, error: reserveError } = await supabase.rpc("reserve_signature_attempt", {
+      p_signature_code_id: signatureCode.id,
+      p_max_attempts: MAX_ATTEMPTS,
+    });
+    const reserved = reserveRows?.[0];
+
+    if (reserveError || !reserved) {
+      return new Response(JSON.stringify({ error: "server_error" }), { status: 500 });
+    }
+    if (!reserved.allowed) {
       return new Response(JSON.stringify({ error: "too_many_attempts" }), { status: 429 });
     }
 
     const incomingHash = await sha256Hex(code);
-    if (!timingSafeEqualHex(incomingHash, signatureCode.code_hash)) {
-      await supabase
-        .from("signature_codes")
-        .update({ attempts: signatureCode.attempts + 1 })
-        .eq("id", signatureCode.id);
+    if (!timingSafeEqualHex(incomingHash, reserved.code_hash)) {
       return new Response(JSON.stringify({ error: "wrong_code" }), { status: 401 });
     }
 

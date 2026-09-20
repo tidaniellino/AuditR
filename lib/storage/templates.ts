@@ -2,7 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
 export const TEMPLATE_FILE_BUCKET = "contract-templates";
-export const MAX_TEMPLATE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+// Modelos de contrato reais ficam na casa de dezenas de KB (os 8 modelos
+// fixos do sistema têm 12-18 KB) — 3 MB já é bem generoso. Um limite menor
+// também reduz o tamanho máximo possível de um "zip bomb" (.docx é um .zip;
+// PizZip descompacta tudo em memória sem limite próprio — ver
+// extractDocxParagraphs/extractDocxLetterhead).
+export const MAX_TEMPLATE_FILE_BYTES = 3 * 1024 * 1024; // 3 MB
 
 const ALLOWED_EXTENSIONS = new Set(["doc", "docx"]);
 const ALLOWED_MIME_TYPES = new Set([

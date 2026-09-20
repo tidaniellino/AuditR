@@ -42,6 +42,23 @@ export function encodeXmlEntities(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// PizZip não impõe nenhum limite de tamanho descomprimido — um .docx (é um
+// .zip) de poucos MB poderia, em tese, descompactar um único stream deflate
+// em vários GB ("zip bomb"), esgotando a memória do processo. Como reforço
+// ao limite de upload (ver MAX_TEMPLATE_FILE_BYTES/MAX_LETTERHEAD_FILE_BYTES),
+// aborta explicitamente se o XML descompactado passar de um tamanho que
+// nenhum contrato real chegaria perto de atingir.
+const MAX_DECOMPRESSED_XML_CHARS = 20_000_000;
+
+export function safeAsText(zipObject: PizZip.ZipObject | null | undefined, label: string): string {
+  if (!zipObject) return "";
+  const text = zipObject.asText();
+  if (text.length > MAX_DECOMPRESSED_XML_CHARS) {
+    throw new Error(`Arquivo .docx inválido ou corrompido (conteúdo de ${label} excede o tamanho permitido).`);
+  }
+  return text;
+}
+
 function extractParagraphsFromXml(xml: string): string[] {
   const paragraphMatches = xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
 
@@ -59,7 +76,7 @@ function extractParagraphsFromXml(xml: string): string[] {
 /** Extrai o texto (por parágrafo) de um .docx já mesclado, para compor o PDF. */
 export function extractDocxParagraphs(docxBuffer: Buffer): string[] {
   const zip = new PizZip(docxBuffer);
-  const xml = zip.file("word/document.xml")?.asText() ?? "";
+  const xml = safeAsText(zip.file("word/document.xml"), "word/document.xml");
   return extractParagraphsFromXml(xml);
 }
 
@@ -80,13 +97,13 @@ export function extractDocxLetterhead(docxBuffer: Buffer): DocxLetterheadContent
   const headerFile = fileNames.filter((n) => /^word\/header\d+\.xml$/.test(n)).sort()[0];
   const footerFile = fileNames.filter((n) => /^word\/footer\d+\.xml$/.test(n)).sort()[0];
 
-  const headerLines = headerFile ? extractParagraphsFromXml(zip.file(headerFile)!.asText()) : [];
-  const footerLines = footerFile ? extractParagraphsFromXml(zip.file(footerFile)!.asText()) : [];
+  const headerLines = headerFile ? extractParagraphsFromXml(safeAsText(zip.file(headerFile), headerFile)) : [];
+  const footerLines = footerFile ? extractParagraphsFromXml(safeAsText(zip.file(footerFile), footerFile)) : [];
 
   let logo: DocxLetterheadContent["logo"];
   if (headerFile) {
     const relsPath = headerFile.replace(/^word\//, "word/_rels/") + ".rels";
-    const relsXml = zip.file(relsPath)?.asText();
+    const relsXml = safeAsText(zip.file(relsPath), relsPath);
     const match = relsXml?.match(/Target="([^"]*\.(png|jpe?g))"/i);
     if (match) {
       const relTarget = match[1].replace(/^\.?\/?/, "");
