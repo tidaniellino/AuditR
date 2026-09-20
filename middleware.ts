@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { canEditClauses, canManageOrg, type UserRole } from "@/lib/auth/permissions";
 
-// Home do app pra quem já está logado — "/" virou a landing pública.
 const APP_HOME_PATH = "/painel";
 // Bloqueiam acesso autenticado (redireciona pro painel se já houver sessão).
 const AUTH_PUBLIC_PATHS = ["/login", "/onboarding", "/esqueci-senha"];
@@ -52,7 +51,7 @@ export async function middleware(request: NextRequest) {
     return noStore(NextResponse.redirect(url));
   }
 
-  if (user && (isAuthPublic || isRoot)) {
+  if (user && isAuthPublic) {
     const url = request.nextUrl.clone();
     url.pathname = APP_HOME_PATH;
     return noStore(NextResponse.redirect(url));
