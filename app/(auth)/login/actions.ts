@@ -13,13 +13,21 @@ export interface LoginState {
 const LOCK_MESSAGE =
   "Conta bloqueada por excesso de tentativas. Peça a um Sócio para desbloquear ou use \"Esqueci minha senha\".";
 
-/** IP do cliente por trás do proxy da Vercel — x-forwarded-for pode trazer
- *  vários endereços separados por vírgula (proxies intermediários); o
- *  primeiro é o do cliente real. */
+/** IP do cliente, visto pela borda da Vercel. x-forwarded-for é uma lista
+ *  "cliente, proxy1, proxy2, ..." onde CADA proxy anexa ao FINAL o endereço
+ *  de quem se conectou a ele — então o primeiro valor da lista é o que o
+ *  próprio requisitante mandou (livremente forjável: um atacante pode enviar
+ *  "x-forwarded-for: 1.2.3.4" e usar isso pra nunca acumular tentativas
+ *  contra o mesmo IP, ou pra grudar as próprias tentativas no IP de outra
+ *  pessoa e bloqueá-la). O ÚLTIMO valor é o que a borda da Vercel de fato
+ *  observou ao receber a conexão — não pode ser forjado pelo cliente. */
 async function getClientIp(): Promise<string> {
   const h = await headers();
   const forwardedFor = h.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0].trim();
+  if (forwardedFor) {
+    const ips = forwardedFor.split(",").map((ip) => ip.trim());
+    return ips[ips.length - 1] || "unknown";
+  }
   return h.get("x-real-ip") ?? "unknown";
 }
 
