@@ -830,6 +830,30 @@ export type Database = {
           },
         ]
       }
+      login_ip_attempts: {
+        Row: {
+          attempt_count: number
+          blocked_until: string | null
+          ip: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          attempt_count?: number
+          blocked_until?: string | null
+          ip: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          attempt_count?: number
+          blocked_until?: string | null
+          ip?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       org_invites: {
         Row: {
           created_at: string
@@ -1445,6 +1469,13 @@ export type Database = {
     }
     Functions: {
       can_edit_clauses: { Args: never; Returns: boolean }
+      check_login_ip_rate_limit: {
+        Args: { p_ip: string }
+        Returns: {
+          blocked: boolean
+          retry_after: string
+        }[]
+      }
       check_login_lockout: {
         Args: { p_email: string }
         Returns: {
@@ -1474,6 +1505,10 @@ export type Database = {
       next_clause_version_number: {
         Args: { p_clause_id: string }
         Returns: string
+      }
+      register_login_ip_attempt: {
+        Args: { p_ip: string; p_success: boolean }
+        Returns: undefined
       }
       register_login_result: {
         Args: { p_email: string; p_success: boolean }

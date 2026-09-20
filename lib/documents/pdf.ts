@@ -144,12 +144,42 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
     }
   };
 
-  const drawText = (text: string, f: PDFFont, size: number, color = rgb(0.11, 0.11, 0.13)) => {
-    for (const line of wrapLine(text, f, size, maxWidth)) {
+  // Justifica uma linha (exceto a última de cada parágrafo, por convenção
+  // tipográfica) distribuindo o espaço sobrando entre as palavras.
+  const drawJustifiedLine = (words: string[], f: PDFFont, size: number, color: ReturnType<typeof rgb>) => {
+    const spaceWidth = f.widthOfTextAtSize(" ", size);
+    const wordsWidth = words.reduce((sum, w) => sum + f.widthOfTextAtSize(w, size), 0);
+    const gaps = words.length - 1;
+    const extraPerGap = gaps > 0 ? (maxWidth - wordsWidth - spaceWidth * gaps) / gaps : 0;
+
+    let x = PAGE_MARGIN;
+    words.forEach((word, i) => {
+      page.drawText(word, { x, y, size, font: f, color });
+      if (i < words.length - 1) {
+        x += f.widthOfTextAtSize(word, size) + spaceWidth + extraPerGap;
+      }
+    });
+  };
+
+  const drawText = (
+    text: string,
+    f: PDFFont,
+    size: number,
+    color = rgb(0.11, 0.11, 0.13),
+    justify = false
+  ) => {
+    const lines = wrapLine(text, f, size, maxWidth);
+    lines.forEach((line, index) => {
       newPageIfNeeded(size + LINE_GAP);
-      page.drawText(line, { x: PAGE_MARGIN, y, size, font: f, color });
+      const words = line.split(/\s+/).filter(Boolean);
+      const isLastLine = index === lines.length - 1;
+      if (justify && !isLastLine && words.length > 1) {
+        drawJustifiedLine(words, f, size, color);
+      } else {
+        page.drawText(line, { x: PAGE_MARGIN, y, size, font: f, color });
+      }
       y -= size + LINE_GAP;
-    }
+    });
   };
 
   // Sem capa/identificação própria do sistema — o texto do modelo já traz a
@@ -157,7 +187,7 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
   // documento final começa direto nele, sem repetir nome do escritório,
   // título do modelo ou um resumo de "PARTES" antes.
   for (const paragraph of input.bodyParagraphs) {
-    drawText(paragraph, font, BODY_SIZE);
+    drawText(paragraph, font, BODY_SIZE, undefined, true);
     y -= 4;
   }
 
@@ -166,7 +196,7 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
     newPageIfNeeded(40);
     drawText(input.extraClause.title.toUpperCase(), bold, 11, rgb(0.07, 0.23, 0.37));
     y -= 2;
-    drawText(input.extraClause.content, font, BODY_SIZE);
+    drawText(input.extraClause.content, font, BODY_SIZE, undefined, true);
   }
 
   if (input.partners?.length || input.otherParty) {
