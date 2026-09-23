@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { createOrganizationAndOwner, type OnboardingState } from "./actions";
 import { formatCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
@@ -9,6 +9,7 @@ import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Alert } from "@/components/ui/Alert";
 import { useActionToast } from "@/components/ui/Toast";
+import { trackMetaPixelEvent } from "@/lib/analytics/meta-pixel";
 
 const initialState: OnboardingState = {};
 
@@ -16,6 +17,16 @@ export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo"
   const [state, formAction] = useFormState(createOrganizationAndOwner, initialState);
   useActionToast(state.needsEmailConfirmation ? undefined : state);
   const [cpfCnpj, setCpfCnpj] = useState("");
+
+  // Conta criada com sucesso no banco (organização + usuário) — mesmo que a
+  // confirmação de e-mail ainda esteja pendente, este é o momento em que o
+  // cadastro passou a existir de fato, então é aqui que o evento de
+  // conversão do Meta Pixel deve disparar (nunca antes, e só uma vez).
+  useEffect(() => {
+    if (state.needsEmailConfirmation) {
+      trackMetaPixelEvent("CompleteRegistration");
+    }
+  }, [state.needsEmailConfirmation]);
 
   if (state.needsEmailConfirmation) {
     return (
