@@ -37,9 +37,15 @@ export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo"
 
   if (state.needsEmailConfirmation) {
     return (
-      <Alert tone="success">
-        Conta criada. Enviamos um e-mail de confirmação — clique no link para ativar sua conta e fazer
-        login.
+      <Alert tone={state.emailWarning ? "error" : "success"}>
+        {state.emailWarning ? (
+          <>Conta criada. {state.emailWarning}</>
+        ) : (
+          <>
+            Conta criada. Enviamos um e-mail de confirmação — clique no link para ativar sua conta e
+            fazer login.
+          </>
+        )}
       </Alert>
     );
   }

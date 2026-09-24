@@ -11,6 +11,10 @@ import { sendSignupConfirmationEmail } from "@/lib/email/resend";
 export interface OnboardingState {
   error?: string;
   needsEmailConfirmation?: boolean;
+  /** A conta foi criada, mas o e-mail de confirmação não pôde ser enviado —
+   *  diferente de `error` (que significa que NADA foi criado): aqui a conta
+   *  já existe, então é um aviso, não uma falha do cadastro em si. */
+  emailWarning?: string;
 }
 
 export async function createOrganizationAndOwner(
@@ -88,6 +92,14 @@ export async function createOrganizationAndOwner(
     return { error: signUpError?.message ?? "Não foi possível criar o usuário." };
   }
 
+  // A conta (organização + usuário) já existe a partir daqui — o envio do
+  // e-mail é só a etapa seguinte. Uma falha no Resend não pode fazer o
+  // cadastro parecer que "não aconteceu": além de confundir o usuário
+  // (que já tem conta, só precisa reenviar/confirmar depois), isso também
+  // suprimia o evento de conversão do Meta Pixel (que só dispara junto com
+  // `needsEmailConfirmation`), fazendo cadastros reais saírem sem crédito
+  // sempre que o e-mail de confirmação falhasse por qualquer motivo.
+  let emailWarning: string | undefined;
   try {
     await sendSignupConfirmationEmail({
       to: email,
@@ -95,10 +107,8 @@ export async function createOrganizationAndOwner(
       confirmUrl: `${baseUrl}/confirmar-conta?token_hash=${linkData.properties.hashed_token}`,
     });
   } catch {
-    return {
-      error: "Conta criada, mas não foi possível enviar o e-mail de confirmação. Tente fazer login mais tarde.",
-    };
+    emailWarning = "Não foi possível enviar o e-mail de confirmação agora. Tente fazer login mais tarde para reenviá-lo.";
   }
 
-  return { needsEmailConfirmation: true };
+  return { needsEmailConfirmation: true, emailWarning };
 }
