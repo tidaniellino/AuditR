@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Alert } from "@/components/ui/Alert";
 import { useActionToast } from "@/components/ui/Toast";
 import { trackMetaPixelEvent } from "@/lib/analytics/meta-pixel";
+import { PLAN_PRICES } from "@/lib/billing/limits";
 
 const initialState: OnboardingState = {};
 
@@ -22,11 +23,17 @@ export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo"
   // confirmação de e-mail ainda esteja pendente, este é o momento em que o
   // cadastro passou a existir de fato, então é aqui que o evento de
   // conversão do Meta Pixel deve disparar (nunca antes, e só uma vez).
+  // "value" usa o preço do plano escolhido na landing (0 para o plano
+  // gratuito) — ainda não é uma cobrança confirmada (isso só acontece no
+  // Checkout depois), mas dá pro Meta priorizar por qualidade do cadastro.
   useEffect(() => {
     if (state.needsEmailConfirmation) {
-      trackMetaPixelEvent("CompleteRegistration");
+      trackMetaPixelEvent("CompleteRegistration", {
+        value: plan ? PLAN_PRICES[plan] : 0,
+        currency: "BRL",
+      });
     }
-  }, [state.needsEmailConfirmation]);
+  }, [state.needsEmailConfirmation, plan]);
 
   if (state.needsEmailConfirmation) {
     return (
