@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { createContract, type ContractFormState } from "../actions";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useActionToast } from "@/components/ui/Toast";
+import { OrgDocumentGateModal } from "@/components/contracts/OrgDocumentGateModal";
 
 const initialState: ContractFormState = {};
 
@@ -63,7 +64,14 @@ export function ContractForm({
   hasLetterhead: boolean;
 }) {
   const [state, formAction] = useFormState(createContract, initialState);
-  useActionToast(state);
+  useActionToast(state.needsOrgDocument ? undefined : state);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const [gateOpen, setGateOpen] = useState(false);
+
+  useEffect(() => {
+    if (state.needsOrgDocument) setGateOpen(true);
+  }, [state]);
 
   const templatesById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -77,7 +85,7 @@ export function ContractForm({
 
   return (
     <div className="flex max-w-lg flex-col gap-6">
-      <form action={formAction} className="flex flex-col gap-4">
+      <form ref={formRef} action={formAction} className="flex flex-col gap-4">
         <Field label="Cliente" htmlFor="client_id">
           <select
             id="client_id"
@@ -291,6 +299,15 @@ export function ContractForm({
           ))}
         </div>
       </div>
+
+      <OrgDocumentGateModal
+        open={gateOpen}
+        onClose={() => setGateOpen(false)}
+        onSaved={() => {
+          setGateOpen(false);
+          formRef.current?.requestSubmit();
+        }}
+      />
     </div>
   );
 }

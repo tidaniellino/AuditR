@@ -9,7 +9,19 @@ const AUTH_PUBLIC_PATHS = ["/login", "/onboarding", "/esqueci-senha"];
 // cadastro e redefinição de senha (que ainda estão trocando o token_hash
 // pela sessão) e o webhook da Stripe (sem cookie/sessão, autenticado pela
 // assinatura HMAC do próprio payload) nunca têm sessão prévia.
-const ALWAYS_PUBLIC_PATHS = ["/assinar", "/confirmar-conta", "/redefinir-senha", "/api/stripe/webhook"];
+const ALWAYS_PUBLIC_PATHS = [
+  "/assinar",
+  "/confirmar-conta",
+  "/redefinir-senha",
+  "/api/stripe/webhook",
+  // Callback do OAuth do Google (Regra 4) — troca o code por sessão; ainda
+  // não há usuário autenticado no momento em que essa rota é chamada.
+  "/auth/callback",
+  // Termos/Privacidade precisam ser legíveis por qualquer visitante, logado
+  // ou não — inclusive por quem ainda nem tem conta (linkados do cadastro).
+  "/termos",
+  "/privacidade",
+];
 // Único destino permitido enquanto a troca de senha obrigatória está pendente.
 const PASSWORD_CHANGE_PATH = "/trocar-senha";
 

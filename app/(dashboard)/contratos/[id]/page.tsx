@@ -6,6 +6,7 @@ import { STATUS_DISPLAY, type ContractStatus } from "@/lib/contracts/status";
 import { formatCpfCnpj } from "@/lib/validation/cpf-cnpj";
 import { formatBRL } from "@/lib/utils";
 import { SendForSignatureForm } from "./SendForSignatureForm";
+import { FirstContractTracker } from "@/components/contracts/FirstContractTracker";
 
 export default async function ContratoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,6 +53,7 @@ export default async function ContratoDetalhePage({ params }: { params: Promise<
 
   return (
     <div className="max-w-2xl">
+      <FirstContractTracker />
       <Link href="/contratos" className="text-xs text-muted hover:text-brand-via">
         ← Contratos
       </Link>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { AuthEventTracker } from "@/components/auth/AuthEventTracker";
 
 async function countRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -36,6 +37,7 @@ export default async function DashboardHomePage() {
 
   return (
     <div>
+      <AuthEventTracker />
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">Visão geral</p>
       <h1 className="mt-2 font-display text-3xl text-ink_text">
         {firstName ? `Bem-vindo(a), ${firstName}.` : "Bem-vindo(a)."}

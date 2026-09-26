@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
 import { validatePassword } from "@/lib/validation/password";
 import { isPaidPlanKey } from "@/lib/stripe/plans";
 import { getBaseUrl } from "@/lib/url";
@@ -23,13 +22,23 @@ export async function createOrganizationAndOwner(
 ): Promise<OnboardingState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const cpfCnpj = onlyDigits(String(formData.get("cpf_cnpj") ?? ""));
   const password = String(formData.get("password") ?? "");
+  // Regra 1: cadastro mínimo (nome, e-mail, senha) — CPF/CNPJ não é pedido
+  // aqui. Fica opcional no banco (organizations.cnpj já era nullable) e só
+  // é solicitado quando o usuário tentar gerar o primeiro contrato (ver
+  // app/(dashboard)/contratos/actions.ts, gate de "Minha Empresa").
+  const acceptedTerms = formData.get("accept_terms") === "on";
 
   if (!fullName) return { error: "Informe seu nome completo." };
-  if (!isValidCpfOuCnpj(cpfCnpj)) return { error: "Informe um CPF ou CNPJ válido." };
+  if (!email || !email.includes("@")) return { error: "Informe um e-mail válido." };
+  // Front já bloqueia o envio sem marcar (checkbox required), mas a
+  // validação precisa ser repetida aqui — o form pode ser submetido direto
+  // (fetch/curl) sem passar pela checagem do navegador.
+  if (!acceptedTerms) {
+    return { error: "É necessário aceitar os Termos de Uso e a Política de Privacidade." };
+  }
 
-  const passwordProblems = validatePassword(password, { email, cpf: cpfCnpj });
+  const passwordProblems = validatePassword(password, { email });
   if (passwordProblems.length) return { error: passwordProblems[0] };
 
   // Plano escolhido na landing (?plan=profissional|corporativo), carregado
@@ -44,18 +53,14 @@ export async function createOrganizationAndOwner(
 
   // 1) Cria a "casca" da conta (RPC pública restrita — não expõe dados
   //    sensíveis, só cria a linha em organizations). O usuário ainda não existe.
-  //    O nome interno da conta usa o nome completo — não há mais um "nome de
-  //    escritório" separado pedido na tela.
+  //    Sem CNPJ/CPF nesse momento (Regra 1) — a coluna é nullable, preenchida
+  //    depois sob demanda.
   const { data: orgId, error: orgError } = await supabase.rpc("create_organization", {
     p_name: fullName,
-    p_cnpj: cpfCnpj,
     p_pending_plan: pendingPlan ?? undefined,
   });
 
   if (orgError) {
-    if (orgError.code === "23505") {
-      return { error: "Já existe uma conta cadastrada com este CPF/CNPJ." };
-    }
     return { error: "Não foi possível criar a conta. Tente novamente." };
   }
   if (!orgId) {
@@ -84,7 +89,7 @@ export async function createOrganizationAndOwner(
     email,
     password,
     options: {
-      data: { org_id: orgId, full_name: fullName, cpf: cpfCnpj.length === 11 ? cpfCnpj : null },
+      data: { org_id: orgId, full_name: fullName },
     },
   });
 

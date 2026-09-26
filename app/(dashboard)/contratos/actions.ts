@@ -102,7 +102,7 @@ async function generateContract({
   /** Usa o papel timbrado da organização (cabeçalho/rodapé) como formatação
    *  visual do PDF gerado, se um estiver cadastrado em Minha Empresa. */
   useLetterhead?: boolean;
-}): Promise<{ contractId: string } | { error: string }> {
+}): Promise<{ contractId: string } | { error: string; needsOrgDocument?: boolean }> {
   const usage = await getContractUsage(supabase, profile.org_id);
   if (usage.blocked) {
     return {
@@ -221,12 +221,18 @@ async function generateContract({
   const orgCity =
     orgEndereco?.municipio && orgEndereco?.uf ? `${orgEndereco.municipio}/${orgEndereco.uf}` : null;
 
-  const missingContratadaFields: string[] = [];
-  if (!org?.cnpj) missingContratadaFields.push("CNPJ");
-  if (!orgEnderecoTexto) missingContratadaFields.push("endereço");
-  if (missingContratadaFields.length > 0) {
+  if (!orgEnderecoTexto) {
     return {
-      error: `Complete o cadastro de "Minha Empresa" antes de gerar o contrato — faltando: ${missingContratadaFields.join(", ")}. Acesse Minha Empresa no menu.`,
+      error: `Complete o cadastro de "Minha Empresa" antes de gerar o contrato — faltando: endereço. Acesse Minha Empresa no menu.`,
+    };
+  }
+  // Regra 2: CPF/CNPJ é pedido sob demanda (só quando falta, na hora de
+  // gerar), não no cadastro/em Minha Empresa — sinal estruturado pra tela
+  // abrir o modal em vez de só mostrar um erro bloqueante.
+  if (!org?.cnpj) {
+    return {
+      needsOrgDocument: true,
+      error: "Precisamos do seu CPF ou CNPJ para emitir o contrato com validade jurídica.",
     };
   }
 
@@ -583,7 +589,7 @@ async function generateContractFromUpload({
   clientId: string;
   titleInput: string;
   file: File;
-}): Promise<{ contractId: string } | { error: string }> {
+}): Promise<{ contractId: string } | { error: string; needsOrgDocument?: boolean }> {
   const usage = await getContractUsage(supabase, profile.org_id);
   if (usage.blocked) {
     return {
@@ -627,12 +633,18 @@ async function generateContractFromUpload({
       (orgEndereco.uf ? `/${orgEndereco.uf}` : "")
     : "";
 
-  const missingContratadaFields: string[] = [];
-  if (!org?.cnpj) missingContratadaFields.push("CNPJ");
-  if (!orgEnderecoTexto) missingContratadaFields.push("endereço");
-  if (missingContratadaFields.length > 0) {
+  if (!orgEnderecoTexto) {
     return {
-      error: `Complete o cadastro de "Minha Empresa" antes de gerar o contrato — faltando: ${missingContratadaFields.join(", ")}. Acesse Minha Empresa no menu.`,
+      error: `Complete o cadastro de "Minha Empresa" antes de gerar o contrato — faltando: endereço. Acesse Minha Empresa no menu.`,
+    };
+  }
+  // Regra 2: CPF/CNPJ é pedido sob demanda (só quando falta, na hora de
+  // gerar), não no cadastro/em Minha Empresa — sinal estruturado pra tela
+  // abrir o modal em vez de só mostrar um erro bloqueante.
+  if (!org?.cnpj) {
+    return {
+      needsOrgDocument: true,
+      error: "Precisamos do seu CPF ou CNPJ para emitir o contrato com validade jurídica.",
     };
   }
 
@@ -729,6 +741,7 @@ async function generateContractFromUpload({
 export interface QuickSendResult {
   error?: string;
   success?: string;
+  needsOrgDocument?: boolean;
 }
 
 /** Envio rápido a partir da grade de clientes: o cliente já existe (veio da
@@ -906,6 +919,7 @@ export async function sendForSignature(
 
 export interface ContractFormState {
   error?: string;
+  needsOrgDocument?: boolean;
 }
 
 export async function createContract(
@@ -960,6 +974,16 @@ export async function createContract(
   });
   if ("error" in result) return result;
 
+  // Regra 7: se este era o único contrato da org até agora, é o primeiro
+  // contrato gerado — sinal repassado por query param pro client component
+  // da página do contrato disparar first_contract_generated (redirect() é
+  // server-side, não pode chamar trackEvent/fbq diretamente).
+  const { count } = await supabase
+    .from("contracts")
+    .select("*", { count: "exact", head: true })
+    .eq("org_id", profile.org_id);
+  const isFirstContract = count === 1;
+
   revalidatePath("/contratos");
-  redirect(`/contratos/${result.contractId}`);
+  redirect(`/contratos/${result.contractId}${isFirstContract ? "?first_contract=1" : ""}`);
 }

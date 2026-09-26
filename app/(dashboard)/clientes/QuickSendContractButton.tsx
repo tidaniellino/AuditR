@@ -8,6 +8,7 @@ import { Field, inputClass } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useActionToast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
+import { OrgDocumentGateModal } from "@/components/contracts/OrgDocumentGateModal";
 import { SendIcon } from "@/components/dashboard/icons";
 
 const initialState: QuickSendResult = {};
@@ -35,7 +36,8 @@ export function QuickSendContractButton({
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("template");
   const [state, formAction] = useFormState(quickSendContractForClient, initialState);
-  useActionToast(state);
+  useActionToast(state.needsOrgDocument ? undefined : state);
+  const [gateOpen, setGateOpen] = useState(false);
 
   const templatesById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -49,6 +51,7 @@ export function QuickSendContractButton({
       formRef.current?.reset();
       setMode("template");
     }
+    if (state.needsOrgDocument) setGateOpen(true);
   }, [state]);
 
   return (
@@ -177,6 +180,15 @@ export function QuickSendContractButton({
           </SubmitButton>
         </form>
       </Modal>
+
+      <OrgDocumentGateModal
+        open={gateOpen}
+        onClose={() => setGateOpen(false)}
+        onSaved={() => {
+          setGateOpen(false);
+          formRef.current?.requestSubmit();
+        }}
+      />
     </>
   );
 }

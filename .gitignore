@@ -9,3 +9,4 @@ supabase/.temp/
 
 .vercel
 .env*
+.playwright-mcp/

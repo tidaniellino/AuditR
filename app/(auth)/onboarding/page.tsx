@@ -13,10 +13,10 @@ export default async function OnboardingPage({
   const plan = isPaidPlanKey(params.plan ?? "") ? (params.plan as "profissional" | "corporativo") : null;
 
   return (
-    <AuthShell>
+    <AuthShell compactHeroOnMobile>
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">Nova conta</p>
       <h1 className="mt-2 font-display text-3xl text-ink_text">Criar acesso</h1>
-      <p className="mb-8 mt-2 text-sm text-muted">Cadastre sua conta com e-mail e CPF/CNPJ.</p>
+      <p className="mb-8 mt-2 text-sm text-muted">Cadastre sua conta com nome, e-mail e senha.</p>
 
       {plan && (
         <p className="mb-6 rounded-card border border-brand-via/30 bg-brand-tint px-4 py-3 text-sm text-ink_text">

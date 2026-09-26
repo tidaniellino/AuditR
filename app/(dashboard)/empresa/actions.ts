@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canManageOrg, ROLE_LABELS, type UserRole } from "@/lib/auth/permissions";
-import { isValidCPF, onlyDigits } from "@/lib/validation/cpf-cnpj";
+import { isValidCPF, isValidCpfOuCnpj, formatCpfOuCnpj, onlyDigits } from "@/lib/validation/cpf-cnpj";
 import { validatePassword } from "@/lib/validation/password";
 import { getAdminUsage } from "@/lib/billing/limits";
 import {
@@ -80,6 +80,58 @@ export async function updateOrganization(
 
   revalidatePath("/empresa");
   return {};
+}
+
+export interface SaveOrgDocumentState {
+  error?: string;
+  success?: boolean;
+}
+
+/** Regra 2: CPF/CNPJ sob demanda — chamado pelo modal que a geração de
+ *  contrato abre quando `organizations.cnpj` ainda está vazio. Não usa
+ *  requireOrgManager() (que redireciona pra /acesso-negado) porque um
+ *  Funcionário pode perfeitamente disparar esse modal ao tentar gerar um
+ *  contrato; nesse caso a resposta é uma mensagem orientando a pedir a um
+ *  Sócio, não um redirecionamento que quebraria o fluxo. */
+export async function saveOrgDocument(
+  _prevState: SaveOrgDocumentState | undefined,
+  formData: FormData
+): Promise<SaveOrgDocumentState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sessão expirada. Atualize a página e entre novamente." };
+
+  const { data: profile } = await supabase.from("profiles").select("org_id, role").eq("id", user.id).single();
+  if (!profile) return { error: "Perfil não encontrado." };
+
+  if (!canManageOrg(profile.role as UserRole)) {
+    return {
+      error: "Apenas um Sócio pode cadastrar o CPF/CNPJ da empresa. Peça a um Sócio para preencher em Minha Empresa.",
+    };
+  }
+
+  const documento = String(formData.get("documento") ?? "").trim();
+  const digits = onlyDigits(documento);
+
+  if (!isValidCpfOuCnpj(documento)) {
+    return { error: digits.length > 11 ? "CNPJ inválido." : "CPF inválido." };
+  }
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({ cnpj: formatCpfOuCnpj(documento) })
+    .eq("id", profile.org_id);
+
+  if (error) {
+    if (error.code === "23505") return { error: "Já existe uma conta cadastrada com este CNPJ." };
+    return { error: "Não foi possível salvar. Tente novamente." };
+  }
+
+  revalidatePath("/contratos");
+  revalidatePath("/empresa");
+  return { success: true };
 }
 
 export interface LetterheadFormState {
