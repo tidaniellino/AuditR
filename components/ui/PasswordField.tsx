@@ -28,7 +28,7 @@ export function PasswordField({
   const fieldId = id ?? generatedId;
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         id={fieldId}
         name={name}
@@ -38,7 +38,7 @@ export function PasswordField({
         maxLength={maxLength}
         defaultValue={defaultValue}
         autoComplete={autoComplete}
-        className={`${inputClass} pr-12`}
+        className={`${inputClass} w-full pr-12`}
       />
       <button
         type="button"
