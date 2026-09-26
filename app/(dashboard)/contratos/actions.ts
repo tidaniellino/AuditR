@@ -929,49 +929,71 @@ export async function createContract(
   const { supabase, user, profile } = await requireUser();
 
   const clientId = String(formData.get("client_id") ?? "");
-  const templateId = String(formData.get("template_id") ?? "");
   const titleInput = String(formData.get("title") ?? "").trim();
-  const valorRaw = String(formData.get("valor") ?? "").trim();
-  const clauseId = String(formData.get("clause_id") ?? "").trim() || null;
+  const mode = String(formData.get("mode") ?? "template");
 
   if (!clientId) return { error: "Selecione o cliente." };
-  if (!templateId) return { error: "Selecione o modelo de contrato." };
 
-  let valor: number | null = null;
-  if (valorRaw) {
-    valor = Number(valorRaw.replace(/\./g, "").replace(",", "."));
-    if (Number.isNaN(valor) || valor < 0) return { error: "Valor acordado inválido." };
+  let result: { contractId: string } | { error: string; needsOrgDocument?: boolean };
+
+  if (mode === "upload") {
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { error: "Envie o arquivo do contrato (.docx)." };
+    }
+
+    result = await generateContractFromUpload({
+      supabase,
+      userId: user.id,
+      profile,
+      clientId,
+      titleInput,
+      file,
+    });
+  } else {
+    const templateId = String(formData.get("template_id") ?? "");
+    const valorRaw = String(formData.get("valor") ?? "").trim();
+    const clauseId = String(formData.get("clause_id") ?? "").trim() || null;
+
+    if (!templateId) return { error: "Selecione o modelo de contrato." };
+
+    let valor: number | null = null;
+    if (valorRaw) {
+      valor = Number(valorRaw.replace(/\./g, "").replace(",", "."));
+      if (Number.isNaN(valor) || valor < 0) return { error: "Valor acordado inválido." };
+    }
+
+    // Overrides da tela de revisão da Contratante — só valem para este
+    // contrato, nunca alteram o cadastro do cliente (ver ContractForm.tsx).
+    const contratanteOverrides: ContratanteOverrides = {
+      nome: String(formData.get("cliente_nome") ?? "").trim() || undefined,
+      documento: String(formData.get("cliente_cpf_cnpj") ?? "").trim() || undefined,
+      endereco: String(formData.get("cliente_endereco") ?? "").trim() || undefined,
+      rg: String(formData.get("cliente_rg") ?? "").trim() || undefined,
+      nomeFantasia: String(formData.get("cliente_nome_fantasia") ?? "").trim() || undefined,
+      representanteNome: String(formData.get("cliente_representante_nome") ?? "").trim() || undefined,
+      representanteCpf: String(formData.get("cliente_representante_cpf") ?? "").trim() || undefined,
+      representanteRg: String(formData.get("cliente_representante_rg") ?? "").trim() || undefined,
+    };
+
+    const invertParties = formData.get("invert_parties") === "on";
+    const useLetterhead = formData.get("use_letterhead") === "on";
+
+    result = await generateContract({
+      supabase,
+      userId: user.id,
+      profile,
+      clientId,
+      templateId,
+      titleInput,
+      valor,
+      clauseId,
+      contratanteOverrides,
+      invertParties,
+      useLetterhead,
+    });
   }
 
-  // Overrides da tela de revisão da Contratante — só valem para este
-  // contrato, nunca alteram o cadastro do cliente (ver ContractForm.tsx).
-  const contratanteOverrides: ContratanteOverrides = {
-    nome: String(formData.get("cliente_nome") ?? "").trim() || undefined,
-    documento: String(formData.get("cliente_cpf_cnpj") ?? "").trim() || undefined,
-    endereco: String(formData.get("cliente_endereco") ?? "").trim() || undefined,
-    rg: String(formData.get("cliente_rg") ?? "").trim() || undefined,
-    nomeFantasia: String(formData.get("cliente_nome_fantasia") ?? "").trim() || undefined,
-    representanteNome: String(formData.get("cliente_representante_nome") ?? "").trim() || undefined,
-    representanteCpf: String(formData.get("cliente_representante_cpf") ?? "").trim() || undefined,
-    representanteRg: String(formData.get("cliente_representante_rg") ?? "").trim() || undefined,
-  };
-
-  const invertParties = formData.get("invert_parties") === "on";
-  const useLetterhead = formData.get("use_letterhead") === "on";
-
-  const result = await generateContract({
-    supabase,
-    userId: user.id,
-    profile,
-    clientId,
-    templateId,
-    titleInput,
-    valor,
-    clauseId,
-    contratanteOverrides,
-    invertParties,
-    useLetterhead,
-  });
   if ("error" in result) return result;
 
   // Regra 7: se este era o único contrato da org até agora, é o primeiro

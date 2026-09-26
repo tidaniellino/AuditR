@@ -11,6 +11,8 @@ import { OrgDocumentGateModal } from "@/components/contracts/OrgDocumentGateModa
 
 const initialState: ContractFormState = {};
 
+type Mode = "template" | "upload";
+
 const PLACEHOLDERS = [
   "cliente_nome",
   "cliente_cpf_cnpj",
@@ -68,6 +70,7 @@ export function ContractForm({
 
   const formRef = useRef<HTMLFormElement>(null);
   const [gateOpen, setGateOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>("template");
 
   useEffect(() => {
     if (state.needsOrgDocument) setGateOpen(true);
@@ -86,6 +89,8 @@ export function ContractForm({
   return (
     <div className="flex max-w-lg flex-col gap-6">
       <form ref={formRef} action={formAction} className="flex flex-col gap-4">
+        <input type="hidden" name="mode" value={mode} />
+
         <Field label="Cliente" htmlFor="client_id">
           <select
             id="client_id"
@@ -104,7 +109,28 @@ export function ContractForm({
           </select>
         </Field>
 
-        {selectedClient && (
+        <div className="flex gap-2 rounded-card border border-edge bg-mist p-1">
+          <button
+            type="button"
+            onClick={() => setMode("template")}
+            className={`flex-1 rounded-card px-3 py-2 text-sm font-medium transition-colors ${
+              mode === "template" ? "bg-card text-ink_text shadow-sm" : "text-muted hover:text-ink_text"
+            }`}
+          >
+            Selecionar modelo
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("upload")}
+            className={`flex-1 rounded-card px-3 py-2 text-sm font-medium transition-colors ${
+              mode === "upload" ? "bg-card text-ink_text shadow-sm" : "text-muted hover:text-ink_text"
+            }`}
+          >
+            Upload de contrato pronto
+          </button>
+        </div>
+
+        {mode === "template" && selectedClient && (
           <label className="flex items-start gap-2.5 rounded-card border border-edge bg-mist px-3.5 py-2.5 text-sm text-ink_text">
             <input
               type="checkbox"
@@ -123,7 +149,7 @@ export function ContractForm({
           </label>
         )}
 
-        {selectedClient && (
+        {mode === "template" && selectedClient && (
           <fieldset key={selectedClient.id} className="flex flex-col gap-3 rounded-card border border-edge p-4">
             <legend className="px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
               Dados do cliente — usado como {clientRoleLabel} neste contrato, edite se precisar
@@ -210,74 +236,88 @@ export function ContractForm({
           </fieldset>
         )}
 
-        <Field label="Modelo de contrato" htmlFor="template_id">
-          <div className="flex items-center gap-2">
-            <select
-              id="template_id"
-              name="template_id"
-              required
-              className={inputClass}
-              value={selectedTemplateId}
-              onChange={(e) => setSelectedTemplateId(e.target.value)}
+        {mode === "template" ? (
+          <>
+            <Field label="Modelo de contrato" htmlFor="template_id">
+              <div className="flex items-center gap-2">
+                <select
+                  id="template_id"
+                  name="template_id"
+                  required
+                  className={inputClass}
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                >
+                  <option value="">— Selecionar —</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.contract_type ? ` · ${t.contract_type}` : ""}
+                      {t.is_system_default ? " · Modelo do sistema" : ""}
+                    </option>
+                  ))}
+                </select>
+                {selectedTemplate?.previewUrl && (
+                  <a
+                    href={selectedTemplate.previewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 whitespace-nowrap rounded-card border border-edge px-3 py-2.5 text-xs font-medium text-ink_text hover:bg-mist"
+                  >
+                    Pré-visualizar
+                  </a>
+                )}
+              </div>
+              {selectedTemplate?.is_system_default && (
+                <p className="mt-1.5 text-xs text-muted">Modelo pronto do sistema, disponível para todos os escritórios.</p>
+              )}
+            </Field>
+
+            <Field label="Título do contrato" htmlFor="title" hint="Opcional — se não preencher, usa o nome do cliente">
+              <input id="title" name="title" className={inputClass} />
+            </Field>
+
+            <Field label="Valor acordado" htmlFor="valor" hint="Opcional — em reais, ex.: 1.500,00">
+              <input id="valor" name="valor" inputMode="decimal" placeholder="0,00" className={inputClass} />
+            </Field>
+
+            <Field
+              label="Cláusula personalizada"
+              htmlFor="clause_id"
+              hint="Opcional — anexada ao final do contrato gerado"
             >
-              <option value="">— Selecionar —</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                  {t.contract_type ? ` · ${t.contract_type}` : ""}
-                  {t.is_system_default ? " · Modelo do sistema" : ""}
-                </option>
-              ))}
-            </select>
-            {selectedTemplate?.previewUrl && (
-              <a
-                href={selectedTemplate.previewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="shrink-0 whitespace-nowrap rounded-card border border-edge px-3 py-2.5 text-xs font-medium text-ink_text hover:bg-mist"
-              >
-                Pré-visualizar
-              </a>
+              <select id="clause_id" name="clause_id" className={inputClass}>
+                <option value="">— Nenhuma —</option>
+                {clauses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {hasLetterhead && (
+              <label className="flex items-start gap-2.5 rounded-card border border-edge bg-mist px-3.5 py-2.5 text-sm text-ink_text">
+                <input type="checkbox" name="use_letterhead" className="mt-0.5 accent-brand-via" />
+                <span>
+                  <span className="font-medium">Usar papel timbrado</span>
+                  <span className="block text-xs text-muted">
+                    Gera o PDF com o cabeçalho e rodapé timbrados cadastrados em Minha Empresa.
+                  </span>
+                </span>
+              </label>
             )}
-          </div>
-          {selectedTemplate?.is_system_default && (
-            <p className="mt-1.5 text-xs text-muted">Modelo pronto do sistema, disponível para todos os escritórios.</p>
-          )}
-        </Field>
+          </>
+        ) : (
+          <>
+            <Field label="Título do contrato" htmlFor="title" hint="Opcional — se não preencher, usa o nome do cliente">
+              <input id="title" name="title" className={inputClass} />
+            </Field>
 
-        <Field label="Título do contrato" htmlFor="title" hint="Opcional — se não preencher, usa o nome do cliente">
-          <input id="title" name="title" className={inputClass} />
-        </Field>
-
-        <Field label="Valor acordado" htmlFor="valor" hint="Opcional — em reais, ex.: 1.500,00">
-          <input id="valor" name="valor" inputMode="decimal" placeholder="0,00" className={inputClass} />
-        </Field>
-
-        <Field
-          label="Cláusula personalizada"
-          htmlFor="clause_id"
-          hint="Opcional — anexada ao final do contrato gerado"
-        >
-          <select id="clause_id" name="clause_id" className={inputClass}>
-            <option value="">— Nenhuma —</option>
-            {clauses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        {hasLetterhead && (
-          <label className="flex items-start gap-2.5 rounded-card border border-edge bg-mist px-3.5 py-2.5 text-sm text-ink_text">
-            <input type="checkbox" name="use_letterhead" className="mt-0.5 accent-brand-via" />
-            <span>
-              <span className="font-medium">Usar papel timbrado</span>
-              <span className="block text-xs text-muted">
-                Gera o PDF com o cabeçalho e rodapé timbrados cadastrados em Minha Empresa.
-              </span>
-            </span>
-          </label>
+            <Field label="Arquivo do contrato" htmlFor="file" hint="Arquivo .docx, já pronto para assinatura">
+              <input id="file" name="file" type="file" accept=".doc,.docx" required className={inputClass} />
+            </Field>
+          </>
         )}
 
         <SubmitButton pendingLabel="Gerando documento..." className="self-start">
