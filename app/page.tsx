@@ -87,7 +87,7 @@ export default function LandingPage() {
             SmartDoc Tax
           </p>
           <h1 className="mt-3 font-display text-4xl text-ink_text sm:text-5xl">
-            Geração inteligente de contratos jurídicos e contábeis
+            Geração inteligente de contratos
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-muted">
             Monte cláusulas, gere contratos a partir de modelos e colete assinatura eletrônica —

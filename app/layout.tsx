@@ -14,7 +14,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata = {
   title: "AuditR Contratos",
-  description: "SmartDoc Tax — geração inteligente de documentos jurídicos e contábeis",
+  description: "SmartDoc Tax — geração inteligente de contratos",
 };
 
 // Roda antes da hidratação para aplicar o tema salvo (ou a preferência do
