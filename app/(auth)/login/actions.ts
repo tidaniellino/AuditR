@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { resumePendingCheckoutUrl } from "@/lib/stripe/resume-checkout";
-import { getBaseUrl } from "@/lib/url";
+import { getBaseUrl, safeRedirectPath } from "@/lib/url";
 
 export interface LoginState {
   error?: string;
@@ -34,7 +34,7 @@ async function getClientIp(): Promise<string> {
 export async function login(_prevState: LoginState | undefined, formData: FormData): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const redirectTo = String(formData.get("redirectTo") ?? "/painel");
+  const redirectTo = safeRedirectPath(String(formData.get("redirectTo") ?? "/painel"));
 
   const supabase = await createClient();
   const ip = await getClientIp();

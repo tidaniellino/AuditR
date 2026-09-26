@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/url";
 
 // Distingue conta nova / conta existente vinculada agora / login normal
 // olhando o created_at da IDENTIDADE do Google em si (não o do usuário) —
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const oauthError = searchParams.get("error");
-  const redirectAfter = searchParams.get("redirect_after") ?? "/painel";
+  const redirectAfter = safeRedirectPath(searchParams.get("redirect_after") ?? "/painel");
 
   if (oauthError) {
     // Usuário cancelou o consentimento do Google, ou o Google recusou.

@@ -15,3 +15,18 @@ export async function getBaseUrl(): Promise<string> {
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
 }
+
+/**
+ * Restringe um destino de pós-login/pós-OAuth a um caminho relativo interno.
+ * `?redirect=`/`redirect_after` chegam de query string ou de um campo oculto
+ * de formulário — sem essa checagem, `redirect("https://evil.com")` ou
+ * `new URL("//evil.com", origin)` mandariam o usuário, já autenticado, pra
+ * fora do site (open redirect), já que tanto o `redirect()` do Next quanto o
+ * construtor de `URL` aceitam uma URL absoluta e ignoram a base.
+ */
+export function safeRedirectPath(path: string, fallback = "/painel"): string {
+  if (path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\")) {
+    return path;
+  }
+  return fallback;
+}
