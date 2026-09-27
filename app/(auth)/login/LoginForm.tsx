@@ -38,24 +38,6 @@ export function LoginForm({
     <div className="flex flex-col gap-5">
       {oauthMessage && <Alert tone="error">{oauthMessage}</Alert>}
 
-      {/* Regra 4/6: Google em destaque, acima do formulário. */}
-      <form action={signInWithGoogle}>
-        <input type="hidden" name="redirect_after" value={redirectTo} />
-        <button
-          type="submit"
-          className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-card border border-edge bg-card px-4 py-2.5 text-sm font-medium text-ink_text transition-colors hover:bg-mist"
-        >
-          <GoogleIcon />
-          Continuar com Google
-        </button>
-      </form>
-
-      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
-        <span className="h-px flex-1 bg-edge" />
-        ou
-        <span className="h-px flex-1 bg-edge" />
-      </div>
-
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="redirectTo" value={redirectTo} />
 
@@ -77,14 +59,31 @@ export function LoginForm({
         <SubmitButton pendingLabel="Entrando..." className="mt-1 min-h-[44px] w-full">
           Entrar
         </SubmitButton>
-
-        <Link
-          href="/esqueci-senha"
-          className="text-center text-sm text-muted underline underline-offset-2 hover:text-ink_text"
-        >
-          Esqueci minha senha
-        </Link>
       </form>
+
+      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
+        <span className="h-px flex-1 bg-edge" />
+        ou
+        <span className="h-px flex-1 bg-edge" />
+      </div>
+
+      <form action={signInWithGoogle}>
+        <input type="hidden" name="redirect_after" value={redirectTo} />
+        <button
+          type="submit"
+          className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-card border border-edge bg-card px-4 py-2.5 text-sm font-medium text-ink_text transition-colors hover:bg-mist"
+        >
+          <GoogleIcon />
+          Continuar com Google
+        </button>
+      </form>
+
+      <Link
+        href="/esqueci-senha"
+        className="text-center text-sm text-muted underline underline-offset-2 hover:text-ink_text"
+      >
+        Esqueci minha senha
+      </Link>
     </div>
   );
 }
