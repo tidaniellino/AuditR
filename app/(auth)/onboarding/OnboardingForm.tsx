@@ -63,24 +63,6 @@ export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo"
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Regra 6, item 3: Google em destaque, acima do formulário. */}
-      <form action={signInWithGoogle}>
-        <input type="hidden" name="redirect_after" value="/painel" />
-        <button
-          type="submit"
-          className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-card border border-edge bg-card px-4 py-2.5 text-sm font-medium text-ink_text transition-colors hover:bg-mist"
-        >
-          <GoogleIcon />
-          Continuar com Google
-        </button>
-      </form>
-
-      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
-        <span className="h-px flex-1 bg-edge" />
-        ou
-        <span className="h-px flex-1 bg-edge" />
-      </div>
-
       <form action={formAction} className="flex flex-col gap-4">
         {plan && <input type="hidden" name="plan" value={plan} />}
 
@@ -134,6 +116,23 @@ export function OnboardingForm({ plan }: { plan?: "profissional" | "corporativo"
             .
           </span>
         </label>
+      </form>
+
+      <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
+        <span className="h-px flex-1 bg-edge" />
+        ou
+        <span className="h-px flex-1 bg-edge" />
+      </div>
+
+      <form action={signInWithGoogle}>
+        <input type="hidden" name="redirect_after" value="/painel" />
+        <button
+          type="submit"
+          className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-card border border-edge bg-card px-4 py-2.5 text-sm font-medium text-ink_text transition-colors hover:bg-mist"
+        >
+          <GoogleIcon />
+          Continuar com Google
+        </button>
       </form>
     </div>
   );
