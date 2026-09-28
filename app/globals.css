@@ -68,6 +68,52 @@
   }
 }
 
+@layer components {
+  /*
+   * Botão primário: sem o hover-lift + sombra-de-brilho crescente (o clichê
+   * de qualquer SaaS gerado). No lugar, a ação de clicar "estampa" o botão —
+   * um pequeno soco de escala com recuo elástico, como um carimbo batendo no
+   * papel — em vez de flutuar. Combina com layout/spacing próprios de cada
+   * botão (px-*, rounded-card etc ficam na className de cada instância).
+   */
+  .btn-primary {
+    @apply bg-primary text-white shadow-sm shadow-ink-900/10 transition-colors;
+  }
+  .btn-primary:hover {
+    @apply bg-brand-from;
+  }
+  .btn-primary:active {
+    animation: stamp 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .btn-primary:disabled:active {
+    animation: none;
+  }
+
+  /* Botão secundário/outline — hover unificado (antes variava entre
+     hover:bg-card e hover:bg-mist em telas diferentes pro mesmo papel). */
+  .btn-secondary {
+    @apply border border-edge bg-transparent text-ink_text transition-colors hover:bg-mist;
+  }
+}
+
+@keyframes stamp {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.93);
+  }
+  70% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

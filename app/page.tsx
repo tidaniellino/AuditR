@@ -73,7 +73,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/onboarding"
-              className="inline-flex items-center justify-center rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
+              className="btn-primary inline-flex items-center justify-center rounded-card px-4 py-2.5 text-sm font-medium"
             >
               Criar conta grátis
             </Link>
@@ -84,7 +84,7 @@ export default function LandingPage() {
       <main>
         <section className="mx-auto max-w-4xl px-6 pb-16 pt-20 text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
-            SmartDoc Tax
+            AuditR
           </p>
           <h1 className="mt-3 font-display text-4xl text-ink_text sm:text-5xl">
             Geração inteligente de contratos
@@ -96,14 +96,11 @@ export default function LandingPage() {
           <div className="mt-8 flex items-center justify-center gap-3">
             <Link
               href="/onboarding"
-              className="inline-flex items-center justify-center rounded-card bg-primary px-6 py-3 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
+              className="btn-primary inline-flex items-center justify-center rounded-card px-6 py-3 text-sm font-medium"
             >
               Começar agora
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-card border border-edge bg-transparent px-6 py-3 text-sm font-medium text-ink_text hover:bg-card"
-            >
+            <Link href="/login" className="btn-secondary inline-flex items-center justify-center rounded-card px-6 py-3 text-sm font-medium">
               Já tenho conta
             </Link>
           </div>
@@ -150,10 +147,8 @@ export default function LandingPage() {
 
                 <Link
                   href={plan.price === 0 ? "/onboarding" : `/onboarding?plan=${plan.key}`}
-                  className={`mt-7 inline-flex items-center justify-center rounded-card px-4 py-2.5 text-center text-sm font-medium transition-all ${
-                    plan.highlighted
-                      ? "bg-primary text-white shadow-md shadow-brand-via/25 hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
-                      : "border border-edge text-ink_text hover:bg-mist"
+                  className={`mt-7 inline-flex items-center justify-center rounded-card px-4 py-2.5 text-center text-sm font-medium ${
+                    plan.highlighted ? "btn-primary" : "btn-secondary"
                   }`}
                 >
                   {plan.price === 0 ? "Começar grátis" : `Assinar ${plan.label}`}

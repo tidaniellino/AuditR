@@ -20,11 +20,10 @@ export function SubmitButton({
   const { pending } = useFormStatus();
 
   const base =
-    "inline-flex items-center justify-center rounded-card px-4 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none";
+    "inline-flex items-center justify-center rounded-card px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
-    primary:
-      "bg-primary text-white shadow-md shadow-brand-via/25 hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35",
-    ghost: "border border-edge bg-transparent text-ink_text hover:bg-mist",
+    primary: "btn-primary",
+    ghost: "btn-secondary",
   };
 
   return (

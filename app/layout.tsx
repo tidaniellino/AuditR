@@ -1,4 +1,4 @@
-import { IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Spectral } from "next/font/google";
 import Script from "next/script";
 import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
@@ -12,9 +12,20 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
+// Único peso (600) de propósito: nenhum título no app pede uma variação de
+// peso hoje, então carregar só o arquivo que será de fato usado é o
+// suficiente pra dar personalidade ao "font-display" sem depender da
+// cascata do Tailwind (que resolveria pra 400/normal por padrão).
+const spectral = Spectral({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-display",
+  weight: "600",
+  display: "swap",
+});
+
 export const metadata = {
   title: "AuditR Contratos",
-  description: "SmartDoc Tax — geração inteligente de contratos",
+  description: "AuditR — geração inteligente de contratos",
 };
 
 // Roda antes da hidratação para aplicar o tema salvo (ou a preferência do
@@ -31,7 +42,7 @@ const THEME_INIT_SCRIPT = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={plexMono.variable}>
+    <html lang="pt-BR" className={`${plexMono.variable} ${spectral.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

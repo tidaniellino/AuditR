@@ -61,7 +61,7 @@ export default async function ModelosPage({
         {isEditor && (
           <Link
             href="/modelos/novo"
-            className="shrink-0 rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35"
+            className="btn-primary shrink-0 rounded-card px-4 py-2.5 text-sm font-medium"
           >
             + Novo modelo
           </Link>

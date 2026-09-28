@@ -60,7 +60,10 @@ export default {
         ring: "#1D4E89",
       },
       fontFamily: {
-        display: ["Arial", "Helvetica", "system-ui", "sans-serif"],
+        // Serifada institucional, só pra títulos/preços — dá ao produto uma
+        // voz própria (registro de contrato/certidão) sem afetar o corpo,
+        // que continua neutro e otimizado pra leitura de tabelas/formulários.
+        display: ["var(--font-display)", "Georgia", "serif"],
         sans: ["Arial", "Helvetica", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },

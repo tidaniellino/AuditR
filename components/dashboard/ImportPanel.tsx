@@ -114,7 +114,7 @@ function SubmitButtonInline({ pending }: { pending: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center justify-center rounded-card bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-via/25 transition-all hover:-translate-y-0.5 hover:bg-brand-from hover:shadow-lg hover:shadow-brand-via/35 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-primary disabled:hover:shadow-none"
+      className="btn-primary inline-flex items-center justify-center rounded-card px-4 py-2.5 text-sm font-medium"
     >
       {pending ? "Importando..." : "Importar"}
     </button>
