@@ -8,12 +8,25 @@ function applyTheme(theme: "light" | "dark") {
   localStorage.setItem("theme", theme);
 }
 
-export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
+export function ThemeToggle({
+  collapsed = false,
+  variant = "sidebar",
+}: {
+  collapsed?: boolean;
+  /** "sidebar" (padrão): pensado pro fundo navy fixo do menu. "header": pro
+   *  cabeçalho claro da landing, onde o contraste precisa ser o oposto. */
+  variant?: "sidebar" | "header";
+}) {
   const [theme, setTheme] = useState<"light" | "dark" | null>(null);
 
   useEffect(() => {
     setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
   }, []);
+
+  const variantClass =
+    variant === "header"
+      ? "text-muted hover:bg-mist hover:text-ink_text"
+      : "text-ink-400 hover:bg-white/5 hover:text-white";
 
   if (theme === null) {
     // Evita mismatch de hidratação — o tema real já foi aplicado por um
@@ -33,7 +46,7 @@ export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
       }}
       aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
       title={theme === "dark" ? "Modo claro" : "Modo escuro"}
-      className="flex size-8 shrink-0 items-center justify-center rounded-card text-ink-400 transition-colors hover:bg-white/5 hover:text-white"
+      className={`flex size-8 shrink-0 items-center justify-center rounded-card transition-colors ${variantClass}`}
     >
       {theme === "dark" ? <SunIcon /> : <MoonIcon />}
       {!collapsed && <span className="sr-only">Alternar tema</span>}

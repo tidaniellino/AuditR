@@ -243,6 +243,19 @@ export function DownloadIcon({ className }: IconProps) {
   );
 }
 
+export function SignatureIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
+      <path
+        d="M3 16.5c1.6-4.8 3-7.2 4.2-7.2 1.2 0 1.2 3.6 2.4 3.6s2.4-5.4 3.8-5.4c1.4 0 .9 5.4 2.3 5.4 1 0 1.8-1.6 3.3-1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M3 20.5h18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function ContractsIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
