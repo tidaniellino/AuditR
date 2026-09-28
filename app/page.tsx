@@ -94,22 +94,6 @@ const FEATURES = [
   },
 ];
 
-const TESTIMONIALS_NOTE = "Depoimentos de exemplo, a trocar por citações reais antes do lançamento.";
-const TESTIMONIALS = [
-  {
-    quote: "Exemplo: uma frase curta sobre economizar tempo montando contrato.",
-    who: "Nome do cliente, Escritório de advocacia, Cidade",
-  },
-  {
-    quote: "Exemplo: uma frase curta sobre nunca mais perder o histórico de um cliente.",
-    who: "Nome do cliente, Escritório de contabilidade, Cidade",
-  },
-  {
-    quote: "Exemplo: uma frase curta sobre confiar no hash de validação da assinatura.",
-    who: "Nome do cliente, Consultoria, Cidade",
-  },
-];
-
 const FAQ = [
   {
     q: "Preciso instalar algo?",
@@ -424,21 +408,6 @@ export default function LandingPage() {
             Todo plano inclui geração por modelo ou upload de contrato pronto, cláusulas reutilizáveis,
             cadastro de clientes PF/PJ e assinatura eletrônica com hash de validação.
           </p>
-        </section>
-
-        {/* Depoimentos */}
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="font-display text-3xl text-ink_text">O que dizem os clientes</h2>
-          <p className="mt-1 text-sm text-muted">{TESTIMONIALS_NOTE}</p>
-
-          <div className="mt-8 grid gap-8 sm:grid-cols-3">
-            {TESTIMONIALS.map((t) => (
-              <figure key={t.who}>
-                <blockquote className="text-sm text-ink_text">&ldquo;{t.quote}&rdquo;</blockquote>
-                <figcaption className="mt-3 text-xs text-muted">{t.who}</figcaption>
-              </figure>
-            ))}
-          </div>
         </section>
 
         {/* Dúvidas */}
