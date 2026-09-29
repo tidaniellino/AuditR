@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   CheckIcon,
+  CloseIcon,
   TemplatesIcon,
   SignatureIcon,
   ClientsIcon,
@@ -163,6 +164,80 @@ export default function LandingPage() {
       </header>
 
       <main>
+        {/* Dores — vem antes do hero de propósito: a primeira coisa que o
+            visitante vê é a dor que o produto resolve, não a marca. */}
+        <section className="mx-auto max-w-6xl px-6 py-20">
+          <span className="inline-block rounded-full border border-stamp/40 bg-stamp-tint px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-stamp-dim">
+            Contadores, advogados e consultores
+          </span>
+          <h2 className="mt-4 max-w-xl font-display text-3xl text-ink_text">
+            Sem contrato assinado, você não tem como cobrar rápido.
+          </h2>
+          <p className="mt-3 max-w-2xl text-base text-muted">
+            Sem assinatura, o contrato não vale como título executivo — cobrar um cliente que não pagou
+            vira processo judicial, não uma conversa rápida.
+          </p>
+
+          <div className="mt-8 max-w-2xl rounded-2xl border border-stamp/30 bg-stamp-tint p-7">
+            <p className="font-display text-xl text-ink_text">
+              Sem contrato, o calote vira prejuízo definitivo
+            </p>
+            <ul className="mt-5 flex flex-col gap-3">
+              <li className="flex items-start gap-2.5 text-sm text-ink_text">
+                <CloseIcon className="mt-0.5 shrink-0 text-stamp" />
+                Sem prova formal, a cobrança demora meses na Justiça
+              </li>
+              <li className="flex items-start gap-2.5 text-sm text-ink_text">
+                <CloseIcon className="mt-0.5 shrink-0 text-stamp" />
+                O cliente some, e o serviço já foi prestado de graça
+              </li>
+              <li className="flex items-start gap-2.5 text-sm text-ink_text">
+                <CheckIcon className="mt-0.5 shrink-0 text-seal" />
+                Com contrato assinado, você cobra rápido e com respaldo
+              </li>
+            </ul>
+          </div>
+
+          <div className="mt-10 grid gap-8 sm:grid-cols-3">
+            <div>
+              <div className="h-px w-full bg-stamp/40" />
+              <p className="mt-4 font-medium text-ink_text">O contrato trava no Word</p>
+              <p className="mt-1.5 text-sm text-muted">
+                Copiar dados do cliente pra cada cláusula manualmente é lento — e é ali que nome, CPF e valor
+                saem errados.
+              </p>
+            </div>
+            <div>
+              <div className="h-px w-full bg-stamp/40" />
+              <p className="mt-4 font-medium text-ink_text">Você corre atrás de assinatura</p>
+              <p className="mt-1.5 text-sm text-muted">
+                Ligar, mandar e-mail, cobrar de novo — cada contrato parado é mais uma tarefa manual na sua
+                lista.
+              </p>
+            </div>
+            <div>
+              <div className="h-px w-full bg-stamp/40" />
+              <p className="mt-4 font-medium text-ink_text">Ninguém sabe o que já foi assinado</p>
+              <p className="mt-1.5 text-sm text-muted">
+                Sem um lugar único, saber o status de um contrato significa abrir pasta, e-mail e WhatsApp ao
+                mesmo tempo.
+              </p>
+            </div>
+          </div>
+
+          <blockquote className="mt-12 border-l-2 border-brand-via pl-5 text-lg text-ink_text">
+            O AuditR gera e envia o contrato para assinatura em minutos. Cada assinatura vem com código
+            verificado, IP e hash de validação — a prova formal que você precisa na hora de cobrar.
+          </blockquote>
+
+          <Link
+            href="/onboarding"
+            className="btn-primary mt-6 inline-flex items-center justify-center rounded-card px-6 py-3 text-sm font-medium"
+          >
+            Criar conta grátis
+          </Link>
+        </section>
+
         {/* Hero */}
         <section className="bg-audit-grid overflow-hidden">
           <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 lg:grid-cols-2 lg:items-center">
@@ -259,80 +334,6 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Dores */}
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <span className="inline-block rounded-full border border-stamp/40 bg-stamp-tint px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-stamp-dim">
-            Contadores, advogados e consultores
-          </span>
-          <h2 className="mt-4 max-w-xl font-display text-3xl text-ink_text">
-            Sem contrato assinado, você não tem como cobrar rápido.
-          </h2>
-          <p className="mt-3 max-w-2xl text-base text-muted">
-            Sem assinatura, o contrato não vale como título executivo — cobrar um cliente que não pagou
-            vira processo judicial, não uma conversa rápida.
-          </p>
-
-          <div className="mt-8 grid gap-5 sm:grid-cols-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/landing/aviso-titulo-executivo.png"
-              alt="Cliente não pagou e você não tem como cobrar rápido? Sem contrato assinado, não existe título executivo — a cobrança vira processo judicial longo e caro."
-              width={1080}
-              height={1080}
-              loading="lazy"
-              className="w-full rounded-2xl border border-edge shadow-sm shadow-ink-900/5"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/landing/aviso-calote.png"
-              alt="Sem contrato, o calote vira prejuízo definitivo: sem prova formal a cobrança demora meses na Justiça, e o cliente some depois do serviço prestado de graça."
-              width={1080}
-              height={1080}
-              loading="lazy"
-              className="w-full rounded-2xl border border-edge shadow-sm shadow-ink-900/5"
-            />
-          </div>
-
-          <div className="mt-10 grid gap-8 sm:grid-cols-3">
-            <div>
-              <div className="h-px w-full bg-stamp/40" />
-              <p className="mt-4 font-medium text-ink_text">O contrato trava no Word</p>
-              <p className="mt-1.5 text-sm text-muted">
-                Copiar dados do cliente pra cada cláusula manualmente é lento — e é ali que nome, CPF e valor
-                saem errados.
-              </p>
-            </div>
-            <div>
-              <div className="h-px w-full bg-stamp/40" />
-              <p className="mt-4 font-medium text-ink_text">Você corre atrás de assinatura</p>
-              <p className="mt-1.5 text-sm text-muted">
-                Ligar, mandar e-mail, cobrar de novo — cada contrato parado é mais uma tarefa manual na sua
-                lista.
-              </p>
-            </div>
-            <div>
-              <div className="h-px w-full bg-stamp/40" />
-              <p className="mt-4 font-medium text-ink_text">Ninguém sabe o que já foi assinado</p>
-              <p className="mt-1.5 text-sm text-muted">
-                Sem um lugar único, saber o status de um contrato significa abrir pasta, e-mail e WhatsApp ao
-                mesmo tempo.
-              </p>
-            </div>
-          </div>
-
-          <blockquote className="mt-12 border-l-2 border-brand-via pl-5 text-lg text-ink_text">
-            O AuditR gera e envia o contrato para assinatura em minutos. Cada assinatura vem com código
-            verificado, IP e hash de validação — a prova formal que você precisa na hora de cobrar.
-          </blockquote>
-
-          <Link
-            href="/onboarding"
-            className="btn-primary mt-6 inline-flex items-center justify-center rounded-card px-6 py-3 text-sm font-medium"
-          >
-            Criar conta grátis
-          </Link>
         </section>
 
         {/* Como funciona */}
