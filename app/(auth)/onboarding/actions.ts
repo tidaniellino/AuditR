@@ -51,6 +51,38 @@ export async function createOrganizationAndOwner(
 
   const supabase = await createClient();
 
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Cadastro não está disponível neste ambiente (falta a Service Role Key do Supabase)." };
+  }
+
+  // 0) Recusa se o e-mail já tem conta — precisa vir ANTES de criar a
+  //    organização. handle_new_user() cria o profile assim que o usuário do
+  //    Supabase Auth é inserido, mesmo que o e-mail ainda não tenha sido
+  //    confirmado, então checar `profiles` já cobre os dois casos (conta
+  //    confirmada e cadastro pendente). Sem essa checagem, reenviar o
+  //    formulário com o mesmo e-mail (ex.: usuário que não recebeu o e-mail
+  //    de confirmação e tenta de novo) cria uma organização nova a cada
+  //    tentativa: generateLink() não recria o usuário do Auth (já existe),
+  //    então handle_new_user() nunca roda de novo pra vincular esse profile
+  //    à organização nova — ela fica órfã pra sempre, e a tela mostra
+  //    "conta criada" (disparando o pixel de conversão) numa tentativa que,
+  //    na prática, não criou nada.
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (existingProfile) {
+    return {
+      error:
+        "Já existe uma conta com este e-mail. Se você ainda não confirmou o cadastro, confira sua caixa de entrada — ou faça login e use \"Esqueci minha senha\" se precisar de um novo link.",
+    };
+  }
+
   // 1) Cria a "casca" da conta (RPC pública restrita — não expõe dados
   //    sensíveis, só cria a linha em organizations). O usuário ainda não existe.
   //    Sem CNPJ/CPF nesse momento (Regra 1) — a coluna é nullable, preenchida
@@ -75,13 +107,6 @@ export async function createOrganizationAndOwner(
   //    automaticamente (ver migração 20260819000004). A retomada do plano
   //    escolhido (pending_plan) acontece no primeiro login, depois da
   //    confirmação — ver login/actions.ts.
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch {
-    return { error: "Cadastro não está disponível neste ambiente (falta a Service Role Key do Supabase)." };
-  }
-
   const baseUrl = await getBaseUrl();
 
   const { data: linkData, error: signUpError } = await admin.auth.admin.generateLink({
