@@ -274,6 +274,27 @@ export default function LandingPage() {
             vira processo judicial, não uma conversa rápida.
           </p>
 
+          <div className="mt-8 grid gap-5 sm:grid-cols-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/landing/aviso-titulo-executivo.png"
+              alt="Cliente não pagou e você não tem como cobrar rápido? Sem contrato assinado, não existe título executivo — a cobrança vira processo judicial longo e caro."
+              width={1080}
+              height={1080}
+              loading="lazy"
+              className="w-full rounded-2xl border border-edge shadow-sm shadow-ink-900/5"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/landing/aviso-calote.png"
+              alt="Sem contrato, o calote vira prejuízo definitivo: sem prova formal a cobrança demora meses na Justiça, e o cliente some depois do serviço prestado de graça."
+              width={1080}
+              height={1080}
+              loading="lazy"
+              className="w-full rounded-2xl border border-edge shadow-sm shadow-ink-900/5"
+            />
+          </div>
+
           <div className="mt-10 grid gap-8 sm:grid-cols-3">
             <div>
               <div className="h-px w-full bg-stamp/40" />
