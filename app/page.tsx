@@ -263,9 +263,16 @@ export default function LandingPage() {
 
         {/* Dores */}
         <section className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="max-w-xl font-display text-3xl text-ink_text">
-            Cada contrato manual é uma hora que você não cobra.
+          <span className="inline-block rounded-full border border-stamp/40 bg-stamp-tint px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-stamp-dim">
+            Contadores, advogados e consultores
+          </span>
+          <h2 className="mt-4 max-w-xl font-display text-3xl text-ink_text">
+            Sem contrato assinado, você não tem como cobrar rápido.
           </h2>
+          <p className="mt-3 max-w-2xl text-base text-muted">
+            Sem assinatura, o contrato não vale como título executivo — cobrar um cliente que não pagou
+            vira processo judicial, não uma conversa rápida.
+          </p>
 
           <div className="mt-10 grid gap-8 sm:grid-cols-3">
             <div>
@@ -295,9 +302,16 @@ export default function LandingPage() {
           </div>
 
           <blockquote className="mt-12 border-l-2 border-brand-via pl-5 text-lg text-ink_text">
-            O AuditR gera o contrato a partir do seu modelo, envia o código de assinatura e mostra o status
-            de cada um — pra você nunca mais precisar perguntar &ldquo;esse aqui já foi assinado?&rdquo;
+            O AuditR gera e envia o contrato para assinatura em minutos. Cada assinatura vem com código
+            verificado, IP e hash de validação — a prova formal que você precisa na hora de cobrar.
           </blockquote>
+
+          <Link
+            href="/onboarding"
+            className="btn-primary mt-6 inline-flex items-center justify-center rounded-card px-6 py-3 text-sm font-medium"
+          >
+            Criar conta grátis
+          </Link>
         </section>
 
         {/* Como funciona */}
