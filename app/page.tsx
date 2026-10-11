@@ -135,10 +135,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/imagemmenu.png" alt="AuditR" className="h-8 w-8" />
-            <div>
-              <p className="font-display text-base leading-none text-ink_text">AuditR</p>
-              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted">Contratos</p>
-            </div>
+            <p className="font-display text-base text-ink_text">AuditR</p>
           </div>
 
           <nav className="hidden items-center gap-6 text-sm text-muted lg:flex">

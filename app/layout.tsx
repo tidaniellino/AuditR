@@ -24,8 +24,8 @@ const spectral = Spectral({
 });
 
 export const metadata = {
-  title: "AuditR Contratos",
-  description: "AuditR — geração inteligente de contratos",
+  title: "AuditR",
+  description: "AuditR — contratos e cálculos trabalhistas em um só lugar",
 };
 
 // Roda antes da hidratação para aplicar o tema salvo (ou a preferência do

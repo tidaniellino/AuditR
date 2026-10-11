@@ -111,7 +111,7 @@ export default function AjudaPage() {
       <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">Suporte</p>
       <h1 className="mt-2 font-display text-3xl text-ink_text">Ajuda</h1>
       <p className="mt-2 max-w-lg text-sm text-muted">
-        Orientações rápidas de como usar cada parte do AuditR Contratos.
+        Orientações rápidas de como usar cada parte do AuditR.
       </p>
 
       <div className="mt-8 flex flex-col gap-6">

@@ -97,12 +97,7 @@ export function Sidebar({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/imagemmenu.png" alt="AuditR" className="h-9 w-9 shrink-0" />
-          {!effectiveCollapsed && (
-            <div>
-              <p className="font-display text-base leading-none text-white">AuditR</p>
-              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">Contratos</p>
-            </div>
-          )}
+          {!effectiveCollapsed && <p className="font-display text-base text-white">AuditR</p>}
         </Link>
 
         <SidebarNav role={role} collapsed={effectiveCollapsed} />

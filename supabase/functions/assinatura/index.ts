@@ -18,7 +18,7 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // Secret separado dos da Vercel/Next.js — precisa ser configurado também
 // nos "Edge Function Secrets" do painel do Supabase (Settings > Edge Functions).
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
-const resendFrom = Deno.env.get("RESEND_FROM_EMAIL") ?? "AuditR Contratos <onboarding@resend.dev>";
+const resendFrom = Deno.env.get("RESEND_FROM_EMAIL") ?? "AuditR <onboarding@resend.dev>";
 
 const MAX_ATTEMPTS = 5;
 

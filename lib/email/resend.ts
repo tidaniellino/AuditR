@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM_EMAIL ?? "AuditR Contratos <onboarding@resend.dev>";
+const FROM = process.env.RESEND_FROM_EMAIL ?? "AuditR <onboarding@resend.dev>";
 
 export async function sendSigningEmail({
   to,
@@ -64,7 +64,7 @@ export async function sendPasswordResetEmail({
 }) {
   const text = `Olá!
 
-Recebemos um pedido para redefinir a senha da sua conta no AuditR Contratos.
+Recebemos um pedido para redefinir a senha da sua conta no AuditR.
 
 Clique no link abaixo para escolher uma nova senha:
 ${resetUrl}
@@ -74,7 +74,7 @@ Se você não pediu essa redefinição, ignore este e-mail — sua senha continu
   const html = `
     <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 480px; margin: 0 auto; color: #1C1D22;">
       <p>Olá!</p>
-      <p>Recebemos um pedido para redefinir a senha da sua conta no AuditR Contratos.</p>
+      <p>Recebemos um pedido para redefinir a senha da sua conta no AuditR.</p>
       <p style="text-align:center; margin: 24px 0;">
         <a href="${resetUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
           Redefinir senha
@@ -90,7 +90,7 @@ Se você não pediu essa redefinição, ignore este e-mail — sua senha continu
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: "Redefinição de senha — AuditR Contratos",
+    subject: "Redefinição de senha — AuditR",
     text,
     html,
   });
@@ -109,7 +109,7 @@ export async function sendSignupConfirmationEmail({
 }) {
   const text = `Olá, ${fullName}!
 
-Falta só confirmar seu e-mail para começar a usar o AuditR Contratos.
+Falta só confirmar seu e-mail para começar a usar o AuditR.
 
 Clique no link abaixo para confirmar sua conta:
 ${confirmUrl}
@@ -119,7 +119,7 @@ Se você não criou essa conta, pode ignorar este e-mail.`;
   const html = `
     <div style="font-family: -apple-system, Segoe UI, sans-serif; max-width: 480px; margin: 0 auto; color: #1C1D22;">
       <p>Olá, <strong>${escapeHtml(fullName)}</strong>!</p>
-      <p>Falta só confirmar seu e-mail para começar a usar o AuditR Contratos.</p>
+      <p>Falta só confirmar seu e-mail para começar a usar o AuditR.</p>
       <p style="text-align:center; margin: 24px 0;">
         <a href="${confirmUrl}" style="background:#1D4E89; color:#fff; padding: 12px 24px; border-radius: 10px; text-decoration:none; font-weight:600; display:inline-block;">
           Confirmar minha conta
@@ -134,7 +134,7 @@ Se você não criou essa conta, pode ignorar este e-mail.`;
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: "Confirme sua conta — AuditR Contratos",
+    subject: "Confirme sua conta — AuditR",
     text,
     html,
   });
