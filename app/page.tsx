@@ -144,6 +144,7 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-6 text-sm text-muted lg:flex">
             <a href="#como-funciona" className="hover:text-ink_text">Como funciona</a>
             <a href="#recursos" className="hover:text-ink_text">Recursos</a>
+            <a href="#calculos-trabalhistas" className="hover:text-ink_text">Cálculos</a>
             <a href="#planos" className="hover:text-ink_text">Preços</a>
             <a href="#duvidas" className="hover:text-ink_text">Dúvidas</a>
           </nav>
@@ -373,6 +374,46 @@ export default function LandingPage() {
                   <p className="mt-1.5 text-sm text-ink-400">{body}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Cálculos Trabalhistas — segundo módulo do backoffice */}
+        <section id="calculos-trabalhistas" className="mx-auto max-w-6xl px-6 py-20">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <span className="inline-block rounded-full border border-edge bg-mist px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
+                Novo módulo
+              </span>
+              <h2 className="mt-4 font-display text-3xl text-ink_text">Cálculos trabalhistas, direto no painel</h2>
+              <p className="mt-3 max-w-lg text-base text-muted">
+                Estime rescisão — aviso prévio, férias, 13º, FGTS e descontos — sem abrir o PJe-Calc. Caso
+                complexo? Peça ajuda a um contador registrado no CRC, direto da tela.
+              </p>
+              <ul className="mt-6 flex flex-col gap-2.5 text-sm text-ink_text">
+                <li className="flex items-start gap-2.5">
+                  <CheckIcon className="mt-0.5 shrink-0 text-seal" />
+                  Dispensa sem justa causa, pedido de demissão, justa causa e acordo (Art. 484-A)
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckIcon className="mt-0.5 shrink-0 text-seal" />
+                  Tabelas de INSS e IRRF sempre atualizadas
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckIcon className="mt-0.5 shrink-0 text-seal" />
+                  Resultado em segundos, com o caso resumido pronto pro WhatsApp do contador
+                </li>
+              </ul>
+              <Link
+                href="/onboarding"
+                className="btn-primary mt-7 inline-flex items-center justify-center rounded-card px-6 py-3 text-sm font-medium"
+              >
+                Criar conta grátis
+              </Link>
+            </div>
+            <div className="overflow-hidden rounded-2xl border border-edge shadow-xl shadow-ink-900/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/calculos/capa.png" alt="Cálculos trabalhistas no AuditR" className="w-full" />
             </div>
           </div>
         </section>
