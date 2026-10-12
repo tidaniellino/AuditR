@@ -141,6 +141,7 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-6 text-sm text-muted lg:flex">
             <a href="#como-funciona" className="hover:text-ink_text">Como funciona</a>
             <a href="#recursos" className="hover:text-ink_text">Recursos</a>
+            <Link href="/calculos" className="hover:text-ink_text">Cálculos trabalhistas</Link>
             <a href="#planos" className="hover:text-ink_text">Preços</a>
             <a href="#duvidas" className="hover:text-ink_text">Dúvidas</a>
           </nav>

@@ -21,9 +21,8 @@ const ALWAYS_PUBLIC_PATHS = [
   // ou não — inclusive por quem ainda nem tem conta (linkados do cadastro).
   "/termos",
   "/privacidade",
-  // Página de divulgação do serviço de cálculos trabalhistas — só o banner e
-  // o botão de WhatsApp, acessível apenas pelo link direto (não é linkada
-  // em lugar nenhum do site).
+  // Landing page do serviço de cálculos trabalhistas (linkada no menu da
+  // home) — o pedido é feito pelo WhatsApp, sem conta no AuditR.
   "/calculos",
 ];
 // Único destino permitido enquanto a troca de senha obrigatória está pendente.
