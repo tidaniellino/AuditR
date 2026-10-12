@@ -243,16 +243,6 @@ export function DownloadIcon({ className }: IconProps) {
   );
 }
 
-export function CalculatorIcon({ className }: IconProps) {
-  return (
-    <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
-      <rect x="4.5" y="2.75" width="15" height="18.5" rx="2" />
-      <path d="M8 7h8" strokeLinecap="round" />
-      <path d="M8 11.5h1.2M11.4 11.5h1.2M14.8 11.5h1.2M8 15h1.2M11.4 15h1.2M14.8 15v3.3M8 18.3h1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function SignatureIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} stroke="currentColor" aria-hidden="true">
